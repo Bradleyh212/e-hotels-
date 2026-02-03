@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>e-Hotels</title>
+
+	<link rel="stylesheet" href="./css/styles.css" />
+</head>
+
+<body>
+	<header class="site-header">
+		<div class="container">
+			<h1>e-Hotels</h1>
+			<p class="subtitle">CSI 2132 — Course Project (2026)</p>
+
+			<nav class="tabs">
+				<button class="tab is-active" data-view="hotels">Hotels</button>
+				<button class="tab" data-view="rooms">Rooms</button>
+				<button class="tab" data-view="bookings">Bookings</button>
+				<button class="tab" data-view="customers">Customers</button>
+			</nav>
+		</div>
+	</header>
+
+	<main class="container">
+		<section class="card">
+			<div class="row row-between">
+				<h2 id="view-title">Hotels</h2>
+
+				<div class="row">
+					<input id="search" type="search" placeholder="Search…" />
+					<button id="refresh">Refresh</button>
+				</div>
+			</div>
+
+			<div id="status" class="status">Ready.</div>
+
+			<!-- Dynamic content goes here -->
+			<div id="content"></div>
+		</section>
+	</main>
+
+	<footer class="site-footer">
+		<div class="container">
+			<small>e-Hotels • Built for CSI 2132</small>
+		</div>
+	</footer>
+
+	<script src="./js/app.js" defer></script>
+</body>
+</html>
