@@ -1,128 +1,122 @@
 erDiagram
-	HOTEL_CHAIN ||--|{ HOTEL : owns
-	HOTEL ||--|{ ROOM : contains
+  HOTEL_CHAIN ||--|{ HOTEL : owns
+  HOTEL ||--|{ ROOM : contains
 
-	HOTEL ||--|{ EMPLOYEE : employs
-	EMPLOYEE }o--o{ ROLE : has
+  HOTEL ||--|{ EMPLOYEE : employs
+  EMPLOYEE }o--o{ ROLE : has
 
-	CUSTOMER ||--o{ BOOKING : makes
-	ROOM ||--o{ BOOKING : for
+  CUSTOMER ||--o{ BOOKING : makes
+  ROOM ||--o{ BOOKING : for
 
-	BOOKING ||--o| RENTING : converts_to
-	CUSTOMER ||--o{ RENTING : rents
-	ROOM ||--o{ RENTING : rented_as
-	EMPLOYEE ||--o{ RENTING : checkin_processed_by
+  BOOKING ||--o| RENTING : converts_to
+  CUSTOMER ||--o{ RENTING : rents
+  ROOM ||--o{ RENTING : rented_as
+  EMPLOYEE ||--o{ RENTING : checkin_processed_by
 
-	RENTING ||--o{ PAYMENT : paid_by
+  RENTING ||--o{ PAYMENT : paid_by
 
-	ROOM }o--o{ AMENITY : has
-	HOTEL }o--|| HOTEL_CATEGORY : categorized_as
+  ROOM }o--o{ AMENITY : has
+  HOTEL }o--|| HOTEL_CATEGORY : categorized_as
 
-	%% --- Entities ---
+  HOTEL_CHAIN {
+    int chain_id
+    string name
+    string central_office_address
+    int number_of_hotels
+    string contact_emails
+    string contact_phones
+  }
 
-	HOTEL_CHAIN {
-		int chain_id PK
-		string name
-		string central_office_address
-		int number_of_hotels
-		string contact_emails
-		string contact_phones
-	}
+  HOTEL_CATEGORY {
+    int category_id
+    string label
+  }
 
-	HOTEL_CATEGORY {
-		int category_id PK
-		string label  %% e.g., 1-star ... 5-star
-	}
+  HOTEL {
+    int hotel_id
+    int chain_id
+    int category_id
+    string address
+    string area
+    int number_of_rooms
+    string contact_email
+    string contact_phone
+  }
 
-	HOTEL {
-		int hotel_id PK
-		int chain_id FK
-		int category_id FK
-		string address
-		string area
-		int number_of_rooms
-		string contact_email
-		string contact_phone
-	}
+  ROOM {
+    int room_id
+    int hotel_id
+    float price
+    string capacity
+    boolean sea_view
+    boolean mountain_view
+    boolean extendable
+    string problems
+  }
 
-	ROOM {
-		int room_id PK
-		int hotel_id FK
-		decimal price
-		string capacity   %% single/double/etc
-		boolean sea_view
-		boolean mountain_view
-		boolean extendable
-		string problems   %% damages/issues text (or separate table later)
-	}
+  AMENITY {
+    int amenity_id
+    string name
+  }
 
-	AMENITY {
-		int amenity_id PK
-		string name
-	}
+  CUSTOMER {
+    int customer_id
+    string full_name
+    string address
+    string id_type
+    string id_number
+    date registration_date
+  }
 
-	CUSTOMER {
-		int customer_id PK
-		string full_name
-		string address
-		string id_type      %% SSN/SIN/driver licence
-		string id_number
-		date registration_date
-	}
+  EMPLOYEE {
+    int employee_id
+    int hotel_id
+    string full_name
+    string address
+    string ssn_sin
+    boolean is_manager
+  }
 
-	EMPLOYEE {
-		int employee_id PK
-		int hotel_id FK
-		string full_name
-		string address
-		string ssn_sin
-		boolean is_manager  %% ensures each hotel has a manager (via constraints)
-	}
+  ROLE {
+    int role_id
+    string role_name
+  }
 
-	ROLE {
-		int role_id PK
-		string role_name
-	}
+  BOOKING {
+    int booking_id
+    int customer_id
+    int room_id
+    date start_date
+    date end_date
+    string created_at
+    string customer_name_snapshot
+    string customer_id_snapshot
+    string hotel_snapshot
+    string room_snapshot
+    boolean is_archived
+  }
 
-	BOOKING {
-		int booking_id PK
-		int customer_id FK
-		int room_id FK
-		date start_date
-		date end_date
-		timestamp created_at
+  RENTING {
+    int renting_id
+    int booking_id
+    int customer_id
+    int room_id
+    int checkin_employee_id
+    date start_date
+    date end_date
+    string checkin_at
+    string checkout_at
+    string customer_name_snapshot
+    string customer_id_snapshot
+    string hotel_snapshot
+    string room_snapshot
+    boolean is_archived
+  }
 
-		%% Archive/snapshot fields so history survives deletes (key requirement)
-		string customer_name_snapshot
-		string customer_id_snapshot
-		string hotel_snapshot
-		string room_snapshot
-		boolean is_archived
-	}
-
-	RENTING {
-		int renting_id PK
-		int booking_id FK  %% nullable if walk-in renting
-		int customer_id FK
-		int room_id FK
-		int checkin_employee_id FK
-		date start_date
-		date end_date
-		timestamp checkin_at
-		timestamp checkout_at
-
-		%% Archive/snapshot fields so history survives deletes (key requirement)
-		string customer_name_snapshot
-		string customer_id_snapshot
-		string hotel_snapshot
-		string room_snapshot
-		boolean is_archived
-	}
-
-	PAYMENT {
-		int payment_id PK
-		int renting_id FK
-		decimal amount
-		timestamp paid_at
-		string method
-	}
+  PAYMENT {
+    int payment_id
+    int renting_id
+    float amount
+    string paid_at
+    string method
+  }
