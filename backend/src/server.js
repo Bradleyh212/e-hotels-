@@ -127,6 +127,12 @@ app.post('/api/auth/register', asyncHandler(async (req, res) => {
 			return res.status(400).json({ error: 'Employee requires hotel_id, ssn_sin, and full_name' });
 		}
 
+		const hotelExists = await client.query('SELECT hotel_id, name FROM hotel WHERE hotel_id = $1', [hotel_id]);
+		if (!hotelExists.rows.length) {
+			await client.query('ROLLBACK');
+			return res.status(400).json({ error: `Invalid hotel_id (${hotel_id}). Please choose an existing hotel.` });
+		}
+
 		const employeeResult = await client.query(
 			`INSERT INTO employee (hotel_id, ssn_sin, full_name, address, role)
 			 VALUES ($1, $2, $3, $4, $5)

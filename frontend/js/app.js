@@ -19,6 +19,7 @@ const backToRoleBtn = document.getElementById('backToRoleBtn');
 const backToLoginBtn = document.getElementById('backToLoginBtn');
 const customerRegisterFields = document.getElementById('customerRegisterFields');
 const employeeRegisterFields = document.getElementById('employeeRegisterFields');
+const employeeHotelSelect = document.getElementById('employeeHotelSelect');
 
 const searchForm = document.getElementById('searchForm');
 const resetBtn = document.getElementById('resetBtn');
@@ -115,8 +116,15 @@ function configureRole(role) {
 		field.required = role === 'customer' && ['full_name', 'id_type', 'id_number'].includes(field.name);
 	});
 	employeeFields.forEach(field => {
-		field.required = role === 'employee' && ['hotel_id', 'ssn_sin', 'full_name'].includes(field.name);
+		field.required = role === 'employee' && ['hotel_id', 'ssn_sin', 'employee_full_name'].includes(field.name);
 	});
+}
+
+async function loadHotelsForRegistration() {
+	const hotels = await apiFetch('/api/hotels');
+	employeeHotelSelect.innerHTML = '<option value="">Select hotel</option>' + hotels
+		.map(h => `<option value="${h.hotel_id}">${h.hotel_id} - ${h.name}</option>`)
+		.join('');
 }
 
 function buildQueryString(formData) {
@@ -415,8 +423,8 @@ async function register(event) {
 	} else {
 		payload.hotel_id = String(formData.get('hotel_id') || '').trim();
 		payload.ssn_sin = String(formData.get('ssn_sin') || '').trim();
-		payload.full_name = String(formData.getAll('full_name').find(v => String(v).trim()) || '').trim();
-		payload.address = String(formData.getAll('address').find(v => String(v).trim()) || '').trim();
+		payload.full_name = String(formData.get('employee_full_name') || '').trim();
+		payload.address = String(formData.get('employee_address') || '').trim();
 		payload.employee_role = String(formData.get('employee_role') || '').trim();
 	}
 
@@ -450,6 +458,7 @@ function logout() {
 window.addEventListener('DOMContentLoaded', async () => {
 	try {
 		await loadFilters();
+		await loadHotelsForRegistration();
 		applyRoleUI();
 		showAuthPage('role');
 		bindLiveCriteriaSearch();
