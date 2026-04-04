@@ -1,52 +1,294 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title>e-Hotels</title>
-
-	<link rel="stylesheet" href="./css/styles.css" />
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>e-Hotels Room Search</title>
+	<link rel="stylesheet" href="./css/styles.css">
 </head>
-
 <body>
-	<header class="site-header">
-		<div class="container">
+	<section id="authSection">
+		<div id="rolePage" class="auth-page">
 			<h1>e-Hotels</h1>
-			<p class="subtitle">CSI 2132 — Course Project (2026)</p>
-
-			<nav class="tabs">
-				<button class="tab is-active" data-view="hotels">Hotels</button>
-				<button class="tab" data-view="rooms">Rooms</button>
-				<button class="tab" data-view="bookings">Bookings</button>
-				<button class="tab" data-view="customers">Customers</button>
-			</nav>
+			<p>Select your role</p>
+			<div class="actions">
+				<button type="button" id="chooseCustomer">Customer</button>
+				<button type="button" id="chooseEmployee">Employee</button>
+			</div>
 		</div>
-	</header>
 
-	<main class="container">
-		<section class="card">
-			<div class="row row-between">
-				<h2 id="view-title">Hotels</h2>
-
-				<div class="row">
-					<input id="search" type="search" placeholder="Search…" />
-					<button id="refresh">Refresh</button>
+		<div id="loginPage" class="auth-page hidden">
+			<h2 id="loginTitle">Login</h2>
+			<form id="loginForm" class="auth-form">
+				<label for="loginUsername">Username</label>
+				<input id="loginUsername" name="username" required>
+				<label for="loginPassword">Password</label>
+				<input id="loginPassword" name="password" type="password" required>
+				<div class="actions">
+					<button type="submit">Login</button>
+					<button type="button" id="goToRegisterBtn">Create New</button>
+					<button type="button" id="backToRoleBtn">Back</button>
 				</div>
+			</form>
+		</div>
+
+		<div id="registerPage" class="auth-page hidden">
+			<h2 id="registerTitle">Create Account</h2>
+			<form id="registerForm" class="auth-form">
+				<label>Username <input name="username" required></label>
+				<label>Password <input name="password" type="password" required></label>
+
+				<div id="customerRegisterFields" class="hidden">
+					<label>Full Name <input name="full_name"></label>
+					<label>Address <input name="address"></label>
+					<label>ID Type <input name="id_type"></label>
+					<label>ID Number <input name="id_number"></label>
+				</div>
+
+				<div id="employeeRegisterFields" class="hidden">
+					<label>Hotel ID <input name="hotel_id" type="number"></label>
+					<label>SSN/SIN <input name="ssn_sin"></label>
+					<label>Full Name <input name="full_name"></label>
+					<label>Address <input name="address"></label>
+					<label>Employee Role <input name="employee_role" value="Receptionist"></label>
+				</div>
+
+				<div class="actions">
+					<button type="submit">Create Account</button>
+					<button type="button" id="backToLoginBtn">Back to Login</button>
+				</div>
+			</form>
+		</div>
+		<p id="authStatus"></p>
+	</section>
+
+	<div id="appShell" class="hidden">
+		<section>
+			<div class="row-between">
+				<div>
+					<h1>e-Hotels Portal</h1>
+					<p id="sessionLabel"></p>
+				</div>
+				<button id="logoutBtn" type="button">Logout</button>
+			</div>
+		</section>
+
+		<section id="searchSection">
+		<form id="searchForm">
+		<div class="form-grid">
+			<div>
+				<label for="capacity">Capacity</label>
+				<select id="capacity" name="capacity">
+					<option value="">Any</option>
+					<option value="Single">Single</option>
+					<option value="Double">Double</option>
+					<option value="Suite">Suite</option>
+					<option value="Family">Family</option>
+					<option value="Deluxe">Deluxe</option>
+				</select>
 			</div>
 
-			<div id="status" class="status">Ready.</div>
+			<div>
+				<label for="minPrice">Min Price</label>
+				<input type="number" id="minPrice" name="minPrice" min="0" step="0.01">
+			</div>
 
-			<!-- Dynamic content goes here -->
-			<div id="content"></div>
-		</section>
-	</main>
+			<div>
+				<label for="maxPrice">Max Price</label>
+				<input type="number" id="maxPrice" name="maxPrice" min="0" step="0.01">
+			</div>
 
-	<footer class="site-footer">
-		<div class="container">
-			<small>e-Hotels • Built for CSI 2132</small>
+			<div>
+				<label for="rating">Hotel Category (Rating)</label>
+				<select id="rating" name="rating">
+					<option value="">Any</option>
+				</select>
+			</div>
+
+			<div>
+				<label for="area">Area</label>
+				<input type="text" id="area" name="area" placeholder="Ottawa">
+			</div>
+
+			<div>
+				<label for="chainId">Hotel Chain</label>
+				<select id="chainId" name="chainId">
+					<option value="">Any</option>
+				</select>
+			</div>
+
+			<div>
+				<label for="minTotalRooms">Min Total Rooms (hotel)</label>
+				<input type="number" id="minTotalRooms" name="minTotalRooms" min="1">
+			</div>
+
+			<div>
+				<label for="maxTotalRooms">Max Total Rooms (hotel)</label>
+				<input type="number" id="maxTotalRooms" name="maxTotalRooms" min="1">
+			</div>
+
+			<div>
+				<label for="startDate">Start Date</label>
+				<input type="date" id="startDate" name="startDate">
+			</div>
+
+			<div>
+				<label for="endDate">End Date</label>
+				<input type="date" id="endDate" name="endDate">
+			</div>
 		</div>
-	</footer>
 
-	<script src="./js/app.js" defer></script>
+			<div class="actions">
+				<button type="submit">Search Available Rooms</button>
+				<button type="button" id="resetBtn">Reset</button>
+			</div>
+		</form>
+		</section>
+
+		<section id="resultsSection">
+			<h2>Results</h2>
+			<p id="statusMessage"></p>
+			<div id="results" class="results-grid"></div>
+		</section>
+
+		<section id="customerSection">
+			<h2>Customer Actions</h2>
+			<form id="bookingForm" class="form-grid">
+				<div>
+					<label for="bookingRoomId">Room ID</label>
+					<input id="bookingRoomId" name="room_id" type="number" required>
+				</div>
+				<div>
+					<label for="bookingCustId">Customer ID</label>
+					<input id="bookingCustId" name="cust_id" type="number" required readonly>
+				</div>
+				<div>
+					<label for="bookingStart">Start Date</label>
+					<input id="bookingStart" name="start_date" type="date" required>
+				</div>
+				<div>
+					<label for="bookingEnd">End Date</label>
+					<input id="bookingEnd" name="end_date" type="date" required>
+				</div>
+				<div class="full-row">
+					<button type="submit">Create Booking</button>
+				</div>
+			</form>
+		</section>
+
+		<section id="employeeSection" class="hidden">
+			<h2>Employee Actions</h2>
+			<div class="form-grid">
+				<form id="checkinForm">
+					<h3>Booking ➜ Renting (Check-in)</h3>
+					<label>Booking ID <input name="booking_id" type="number" required></label>
+					<label>Employee ID <input name="emp_id" type="number" required readonly></label>
+					<button type="submit">Convert</button>
+				</form>
+
+				<form id="directRentingForm">
+					<h3>Direct Renting</h3>
+					<label>Room ID <input name="room_id" type="number" required></label>
+					<label>Customer ID <input name="cust_id" type="number" required></label>
+					<label>Employee ID <input name="emp_id" type="number" required readonly></label>
+					<label>Check-in <input name="checkin_date" type="date" required></label>
+					<label>Check-out <input name="checkout_date" type="date" required></label>
+					<button type="submit">Create Renting</button>
+				</form>
+
+				<form id="paymentForm">
+					<h3>Insert Payment</h3>
+					<label>Renting ID <input name="rent_id" type="number" required></label>
+					<label>Amount <input name="amount" type="number" min="0" step="0.01" required></label>
+					<button type="submit">Add Payment</button>
+				</form>
+			</div>
+		</section>
+
+		<section id="adminSection" class="hidden">
+			<h2>Admin CRUD (Customers, Employees, Hotels, Rooms)</h2>
+			<p id="crudStatus"></p>
+			<div class="form-grid">
+			<form id="customerCrudForm">
+				<h3>Customer</h3>
+				<label>ID (for update/delete) <input name="id" type="number"></label>
+				<label>Full Name <input name="full_name"></label>
+				<label>Address <input name="address"></label>
+				<label>ID Type <input name="id_type"></label>
+				<label>ID Number <input name="id_number"></label>
+				<div class="actions">
+					<button type="button" data-action="create">Insert</button>
+					<button type="button" data-action="update">Update</button>
+					<button type="button" data-action="delete">Delete</button>
+					<button type="button" data-action="list">List</button>
+				</div>
+			</form>
+
+			<form id="employeeCrudForm">
+				<h3>Employee</h3>
+				<label>ID (for update/delete) <input name="id" type="number"></label>
+				<label>Hotel ID <input name="hotel_id" type="number"></label>
+				<label>SSN/SIN <input name="ssn_sin"></label>
+				<label>Full Name <input name="full_name"></label>
+				<label>Address <input name="address"></label>
+				<label>Role <input name="role"></label>
+				<div class="actions">
+					<button type="button" data-action="create">Insert</button>
+					<button type="button" data-action="update">Update</button>
+					<button type="button" data-action="delete">Delete</button>
+					<button type="button" data-action="list">List</button>
+				</div>
+			</form>
+
+			<form id="hotelCrudForm">
+				<h3>Hotel</h3>
+				<label>ID (for update/delete) <input name="id" type="number"></label>
+				<label>Chain ID <input name="chain_id" type="number"></label>
+				<label>Name <input name="name"></label>
+				<label>Rating <input name="rating" type="number" min="1" max="5"></label>
+				<label>Address <input name="address"></label>
+				<label>Email <input name="email"></label>
+				<label>Phone <input name="phone"></label>
+				<label>Manager ID <input name="manager_id" type="number"></label>
+				<div class="actions">
+					<button type="button" data-action="create">Insert</button>
+					<button type="button" data-action="update">Update</button>
+					<button type="button" data-action="delete">Delete</button>
+					<button type="button" data-action="list">List</button>
+				</div>
+			</form>
+
+			<form id="roomCrudForm">
+				<h3>Room</h3>
+				<label>ID (for update/delete) <input name="id" type="number"></label>
+				<label>Hotel ID <input name="hotel_id" type="number"></label>
+				<label>Room Number <input name="room_number"></label>
+				<label>Price <input name="price" type="number" min="0" step="0.01"></label>
+				<label>Capacity <input name="capacity"></label>
+				<label>View Type <input name="view_type"></label>
+				<label>Extendable (true/false) <input name="extendable"></label>
+				<label>Status <input name="status" value="Available"></label>
+				<div class="actions">
+					<button type="button" data-action="create">Insert</button>
+					<button type="button" data-action="update">Update</button>
+					<button type="button" data-action="delete">Delete</button>
+					<button type="button" data-action="list">List</button>
+				</div>
+			</form>
+			</div>
+			<pre id="crudOutput"></pre>
+		</section>
+
+		<section id="viewsSection">
+			<h2>SQL Views</h2>
+			<div class="actions">
+				<button id="loadView1" type="button">Load View 1 (Available Rooms per Area)</button>
+				<button id="loadView2" type="button">Load View 2 (Hotel Capacity)</button>
+			</div>
+			<pre id="viewsOutput"></pre>
+		</section>
+	</div>
+
+	<script src="./js/app.js"></script>
 </body>
 </html>

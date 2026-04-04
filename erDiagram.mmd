@@ -1,120 +1,124 @@
 erDiagram
   HOTEL_CHAIN ||--|{ HOTEL : owns
+  HOTEL_CHAIN ||--|{ HOTEL_CHAIN_EMAIL : has
+  HOTEL_CHAIN ||--|{ HOTEL_CHAIN_PHONE : has
   HOTEL ||--|{ ROOM : contains
-
   HOTEL ||--|{ EMPLOYEE : employs
-  EMPLOYEE }o--o{ ROLE : has
-
+  HOTEL ||--o| EMPLOYEE : managed_by
+  CUSTOMER ||--o| APP_USER : authenticates_as
+  EMPLOYEE ||--o| APP_USER : authenticates_as
+  ROOM }o--o{ AMENITY : has
   CUSTOMER ||--o{ BOOKING : makes
-  ROOM ||--o{ BOOKING : for
-
-  BOOKING ||--o| RENTING : converts_to
+  ROOM ||--o{ BOOKING : reserved_for
   CUSTOMER ||--o{ RENTING : rents
   ROOM ||--o{ RENTING : rented_as
-  EMPLOYEE ||--o{ RENTING : checkin_processed_by
+  EMPLOYEE ||--o{ RENTING : processed_by
+  BOOKING ||--o| RENTING : transformed_to
 
-  RENTING ||--o{ PAYMENT : paid_by
-
-  ROOM }o--o{ AMENITY : has
-  HOTEL }o--|| HOTEL_CATEGORY : categorized_as
+  BOOKING ||--o{ ARCHIVE_BOOKING : archived_as
+  RENTING ||--o{ ARCHIVE_RENTING : archived_as
 
   HOTEL_CHAIN {
-    int chain_id
-    string name
-    string central_office_address
-    string contact_emails
-    string contact_phones
+    int Chain_ID PK
+    string Office_Address
+    string Name
   }
 
-  HOTEL_CATEGORY {
-    int category_id
-    string label
+  HOTEL_CHAIN_EMAIL {
+    int Chain_ID FK
+    string Email PK
+  }
+
+  HOTEL_CHAIN_PHONE {
+    int Chain_ID FK
+    string Phone PK
   }
 
   HOTEL {
-    int hotel_id
-    int chain_id
-    int category_id
-    string address
-    string area
-    string contact_email
-    string contact_phone
-  }
-
-  ROOM {
-    int room_id
-    int hotel_id
-    float price
-    string capacity
-    boolean sea_view
-    boolean mountain_view
-    boolean extendable
-    string problems
-  }
-
-  AMENITY {
-    int amenity_id
-    string name
-  }
-
-  CUSTOMER {
-    int customer_id
-    string full_name
-    string address
-    string id_type
-    string id_number
-    date registration_date
+    int Hotel_ID PK
+    int Chain_ID FK
+    string Name
+    int Rating
+    string Address
+    string Email
+    string Phone
+    int Manager_ID FK
   }
 
   EMPLOYEE {
-    int employee_id
-    int hotel_id
-    string full_name
-    string address
-    string ssn_sin
-    boolean is_manager
+    int Emp_ID PK
+    int Hotel_ID FK
+    string SSN_SIN
+    string Full_Name
+    string Address
+    string Role
   }
 
-  ROLE {
-    int role_id
-    string role_name
+  CUSTOMER {
+    int Cust_ID PK
+    string Full_Name
+    string Address
+    string ID_Type
+    string ID_Number
+    date Registration_Date
+  }
+
+  APP_USER {
+    int User_ID PK
+    string Username
+    string Password_Hash
+    string Role
+    int Cust_ID FK
+    int Emp_ID FK
+  }
+
+  ROOM {
+    int Room_ID PK
+    int Hotel_ID FK
+    string Room_Number
+    decimal Price
+    string Capacity
+    string View_Type
+    bool Extendable
+    string Status
+  }
+
+  AMENITY {
+    int Amenity_ID PK
+    string Name
   }
 
   BOOKING {
-    int booking_id
-    int customer_id
-    int room_id
-    date start_date
-    date end_date
-    string created_at
-    string customer_name_snapshot
-    string customer_id_snapshot
-    string hotel_snapshot
-    string room_snapshot
-    boolean is_archived
+    int Book_ID PK
+    int Room_ID FK
+    int Cust_ID FK
+    date Start_Date
+    date End_Date
   }
 
   RENTING {
-    int renting_id
-    int booking_id
-    int customer_id
-    int room_id
-    int checkin_employee_id
-    date start_date
-    date end_date
-    string checkin_at
-    string checkout_at
-    string customer_name_snapshot
-    string customer_id_snapshot
-    string hotel_snapshot
-    string room_snapshot
-    boolean is_archived
+    int Rent_ID PK
+    int Book_ID FK
+    int Room_ID FK
+    int Cust_ID FK
+    int Emp_ID FK
+    date CheckIn_Date
+    date CheckOut_Date
+    decimal Amount_Paid
   }
 
-  PAYMENT {
-    int payment_id
-    int renting_id
-    float amount
-    string paid_at
-    string method
+  ARCHIVE_BOOKING {
+    int Archive_ID PK
+    int Old_Book_ID
+    string Customer_Name
+    string Hotel_Name
+    string Room_Number
+  }
+
+  ARCHIVE_RENTING {
+    int Archive_ID PK
+    int Old_Rent_ID
+    string Customer_Name
+    string Hotel_Name
+    string Room_Number
   }
