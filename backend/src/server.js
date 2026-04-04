@@ -197,6 +197,183 @@ app.post('/api/auth/login', asyncHandler(async (req, res) => {
 	});
 }));
 
+app.get('/api/customers/:id/self', asyncHandler(async (req, res) => {
+	const customerId = Number(req.params.id);
+	const userId = Number(req.query.userId);
+
+	if (!customerId || !userId) {
+		return res.status(400).json({ error: 'customer id and userId are required' });
+	}
+
+	const result = await pool.query(
+		`SELECT
+			u.user_id,
+			u.username,
+			u.role,
+			c.cust_id,
+			c.full_name,
+			c.address,
+			c.id_type,
+			c.id_number,
+			c.registration_date
+		 FROM app_user u
+		 JOIN customer c ON c.cust_id = u.cust_id
+		 WHERE u.user_id = $1
+		 AND c.cust_id = $2
+		 AND u.role = 'customer'`,
+		[userId, customerId]
+	);
+
+	if (!result.rows.length) {
+		return res.status(404).json({ error: 'Customer account not found for this session' });
+	}
+
+	res.json(result.rows[0]);
+}));
+
+app.put('/api/customers/:id/self', asyncHandler(async (req, res) => {
+	const customerId = Number(req.params.id);
+	const {
+		user_id,
+		username,
+		password,
+		full_name,
+		address,
+		id_type,
+		id_number
+	} = req.body;
+
+	const userId = Number(user_id);
+	if (!customerId || !userId) {
+		return res.status(400).json({ error: 'customer id and user_id are required' });
+	}
+
+	const client = await pool.connect();
+	try {
+		await client.query('BEGIN');
+
+		const linkResult = await client.query(
+			`SELECT user_id, username, role, cust_id
+			 FROM app_user
+			 WHERE user_id = $1
+			 AND cust_id = $2
+			 AND role = 'customer'`,
+			[userId, customerId]
+		);
+
+		if (!linkResult.rows.length) {
+			await client.query('ROLLBACK');
+			return res.status(404).json({ error: 'Customer account not found for this session' });
+		}
+
+		if (username) {
+			const usernameCheck = await client.query(
+				'SELECT user_id FROM app_user WHERE username = $1 AND user_id <> $2',
+				[username, userId]
+			);
+			if (usernameCheck.rows.length) {
+				await client.query('ROLLBACK');
+				return res.status(409).json({ error: 'username already exists' });
+			}
+		}
+
+		await client.query(
+			`UPDATE customer
+			 SET full_name = COALESCE($1, full_name),
+				 address = COALESCE($2, address),
+				 id_type = COALESCE($3, id_type),
+				 id_number = COALESCE($4, id_number)
+			 WHERE cust_id = $5`,
+			[full_name || null, address || null, id_type || null, id_number || null, customerId]
+		);
+
+		if (username || password) {
+			const fields = [];
+			const values = [];
+			let idx = 1;
+
+			if (username) {
+				fields.push(`username = $${idx++}`);
+				values.push(username);
+			}
+			if (password) {
+				fields.push(`password_hash = $${idx++}`);
+				values.push(hashPassword(password));
+			}
+			values.push(userId);
+
+			await client.query(
+				`UPDATE app_user SET ${fields.join(', ')} WHERE user_id = $${idx}`,
+				values
+			);
+		}
+
+		const updated = await client.query(
+			`SELECT
+				u.user_id,
+				u.username,
+				c.cust_id,
+				c.full_name,
+				c.address,
+				c.id_type,
+				c.id_number
+			 FROM app_user u
+			 JOIN customer c ON c.cust_id = u.cust_id
+			 WHERE u.user_id = $1 AND c.cust_id = $2`,
+			[userId, customerId]
+		);
+
+		await client.query('COMMIT');
+		res.json({ message: 'Profile updated successfully', profile: updated.rows[0] });
+	} catch (error) {
+		await client.query('ROLLBACK');
+		throw error;
+	} finally {
+		client.release();
+	}
+}));
+
+app.delete('/api/customers/:id/self', asyncHandler(async (req, res) => {
+	const customerId = Number(req.params.id);
+	const userId = Number(req.body.user_id);
+
+	if (!customerId || !userId) {
+		return res.status(400).json({ error: 'customer id and user_id are required' });
+	}
+
+	const client = await pool.connect();
+	try {
+		await client.query('BEGIN');
+
+		const linkResult = await client.query(
+			`SELECT user_id FROM app_user WHERE user_id = $1 AND cust_id = $2 AND role = 'customer'`,
+			[userId, customerId]
+		);
+
+		if (!linkResult.rows.length) {
+			await client.query('ROLLBACK');
+			return res.status(404).json({ error: 'Customer account not found for this session' });
+		}
+
+		await client.query('DELETE FROM renting WHERE cust_id = $1', [customerId]);
+		await client.query('DELETE FROM booking WHERE cust_id = $1', [customerId]);
+
+		const deleteCustomer = await client.query('DELETE FROM customer WHERE cust_id = $1 RETURNING cust_id', [customerId]);
+		if (!deleteCustomer.rows.length) {
+			await client.query('ROLLBACK');
+			return res.status(404).json({ error: 'Customer not found' });
+		}
+
+		await client.query('COMMIT');
+		res.json({ message: 'Customer account deleted successfully', deleted: true });
+	} catch (error) {
+		await client.query('ROLLBACK');
+		throw error;
+	} finally {
+		client.release();
+	}
+}));
+
 app.get('/api/filters', asyncHandler(async (req, res) => {
 	const [chains, capacities, areas, ratings] = await Promise.all([
 		pool.query('SELECT chain_id, name FROM hotelchain ORDER BY name'),

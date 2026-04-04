@@ -5,6 +5,8 @@ const appShell = document.getElementById('appShell');
 const authStatus = document.getElementById('authStatus');
 const sessionLabel = document.getElementById('sessionLabel');
 const logoutBtn = document.getElementById('logoutBtn');
+const dashboardBtn = document.getElementById('dashboardBtn');
+const myAccountBtn = document.getElementById('myAccountBtn');
 const rolePage = document.getElementById('rolePage');
 const loginPage = document.getElementById('loginPage');
 const registerPage = document.getElementById('registerPage');
@@ -28,11 +30,16 @@ const resultsSection = document.getElementById('resultsSection');
 const viewsSection = document.getElementById('viewsSection');
 const resultsDiv = document.getElementById('results');
 const statusMessage = document.getElementById('statusMessage');
-const customerSection = document.getElementById('customerSection');
+const customerDashboardPage = document.getElementById('customerDashboardPage');
+const customerAccountPage = document.getElementById('customerAccountPage');
 const employeeSection = document.getElementById('employeeSection');
 const adminSection = document.getElementById('adminSection');
 
 const bookingForm = document.getElementById('bookingForm');
+const customerProfileForm = document.getElementById('customerProfileForm');
+const reloadCustomerProfileBtn = document.getElementById('reloadCustomerProfileBtn');
+const deleteCustomerAccountBtn = document.getElementById('deleteCustomerAccountBtn');
+const customerProfileStatus = document.getElementById('customerProfileStatus');
 const checkinForm = document.getElementById('checkinForm');
 const directRentingForm = document.getElementById('directRentingForm');
 const paymentForm = document.getElementById('paymentForm');
@@ -48,6 +55,22 @@ const capacitySelect = document.getElementById('capacity');
 let searchTimer;
 let currentSession = null;
 let selectedRole = null;
+let customerPage = 'dashboard';
+
+function closeCustomerDialogs() {
+	if (customerDashboardPage.open) {
+		customerDashboardPage.close();
+	}
+	if (customerAccountPage.open) {
+		customerAccountPage.close();
+	}
+}
+
+function openCustomerDialog(dialog) {
+	if (!dialog.open) {
+		dialog.showModal();
+	}
+}
 
 async function apiFetch(path, options = {}) {
 	const response = await fetch(`${API_BASE}${path}`, {
@@ -69,7 +92,7 @@ function applyRoleUI() {
 		searchSection.classList.add('hidden');
 		resultsSection.classList.add('hidden');
 		viewsSection.classList.add('hidden');
-		customerSection.classList.add('hidden');
+		closeCustomerDialogs();
 		employeeSection.classList.add('hidden');
 		adminSection.classList.add('hidden');
 		return;
@@ -81,10 +104,22 @@ function applyRoleUI() {
 	const isCustomer = currentSession.role === 'customer';
 	searchSection.classList.remove('hidden');
 	resultsSection.classList.remove('hidden');
-	customerSection.classList.toggle('hidden', !isCustomer);
 	employeeSection.classList.toggle('hidden', isCustomer);
 	adminSection.classList.toggle('hidden', isCustomer);
 	viewsSection.classList.toggle('hidden', isCustomer);
+	myAccountBtn.classList.toggle('hidden', !isCustomer);
+	dashboardBtn.classList.toggle('hidden', !isCustomer);
+
+	if (isCustomer) {
+		closeCustomerDialogs();
+		if (customerPage === 'account') {
+			openCustomerDialog(customerAccountPage);
+		} else {
+			openCustomerDialog(customerDashboardPage);
+		}
+	} else {
+		closeCustomerDialogs();
+	}
 
 	sessionLabel.textContent = `Logged in as ${currentSession.role} (${currentSession.username}) - profile #${currentSession.profileId}`;
 	if (isCustomer) {
@@ -102,6 +137,11 @@ function showAuthPage(page) {
 	registerPage.classList.toggle('hidden', page !== 'register');
 }
 
+function showCustomerPage(page) {
+	customerPage = page;
+	applyRoleUI();
+}
+
 function configureRole(role) {
 	selectedRole = role;
 	loginTitle.textContent = role === 'customer' ? 'Customer Login' : 'Employee Login';
@@ -110,8 +150,8 @@ function configureRole(role) {
 	customerRegisterFields.classList.toggle('hidden', role !== 'customer');
 	employeeRegisterFields.classList.toggle('hidden', role !== 'employee');
 
-	const customerFields = customerRegisterFields.querySelectorAll('input');
-	const employeeFields = employeeRegisterFields.querySelectorAll('input');
+	const customerFields = customerRegisterFields.querySelectorAll('input, select, textarea');
+	const employeeFields = employeeRegisterFields.querySelectorAll('input, select, textarea');
 	customerFields.forEach(field => {
 		field.required = role === 'customer' && ['full_name', 'id_type', 'id_number'].includes(field.name);
 	});
@@ -235,6 +275,76 @@ async function createBooking(event) {
 		searchRooms();
 	} catch (error) {
 		statusMessage.textContent = `Booking failed: ${error.message}`;
+	}
+}
+
+async function loadCustomerProfile() {
+	if (!currentSession || currentSession.role !== 'customer') {
+		return;
+	}
+
+	try {
+		const profile = await apiFetch(`/api/customers/${currentSession.profileId}/self?userId=${currentSession.id}`);
+		customerProfileForm.elements.full_name.value = profile.full_name || '';
+		customerProfileForm.elements.address.value = profile.address || '';
+		customerProfileForm.elements.id_type.value = profile.id_type || '';
+		customerProfileForm.elements.id_number.value = profile.id_number || '';
+		customerProfileForm.elements.username.value = profile.username || '';
+		customerProfileForm.elements.password.value = '';
+		customerProfileStatus.textContent = '';
+	} catch (error) {
+		customerProfileStatus.textContent = `Failed to load profile: ${error.message}`;
+	}
+}
+
+async function updateCustomerProfile(event) {
+	event.preventDefault();
+	if (!currentSession || currentSession.role !== 'customer') {
+		customerProfileStatus.textContent = 'Only customer role can update this profile.';
+		return;
+	}
+
+	const payload = Object.fromEntries(new FormData(customerProfileForm).entries());
+	payload.user_id = currentSession.id;
+
+	if (!payload.password) {
+		delete payload.password;
+	}
+
+	try {
+		const result = await apiFetch(`/api/customers/${currentSession.profileId}/self`, {
+			method: 'PUT',
+			body: JSON.stringify(payload)
+		});
+		currentSession.username = result.profile.username;
+		sessionLabel.textContent = `Logged in as ${currentSession.role} (${currentSession.username}) - profile #${currentSession.profileId}`;
+		customerProfileStatus.textContent = 'Profile/account updated successfully.';
+		customerProfileForm.elements.password.value = '';
+	} catch (error) {
+		customerProfileStatus.textContent = `Update failed: ${error.message}`;
+	}
+}
+
+async function deleteCustomerAccount() {
+	if (!currentSession || currentSession.role !== 'customer') {
+		customerProfileStatus.textContent = 'Only customer role can delete this account.';
+		return;
+	}
+
+	const confirmed = window.confirm('Delete your account and customer profile permanently? This cannot be undone.');
+	if (!confirmed) {
+		return;
+	}
+
+	try {
+		await apiFetch(`/api/customers/${currentSession.profileId}/self`, {
+			method: 'DELETE',
+			body: JSON.stringify({ user_id: currentSession.id })
+		});
+		alert('Your account was deleted successfully.');
+		logout();
+	} catch (error) {
+		customerProfileStatus.textContent = `Delete failed: ${error.message}`;
 	}
 }
 
@@ -395,7 +505,11 @@ async function login(event) {
 			profileId: data.user.role === 'customer' ? data.user.cust_id : data.user.emp_id,
 			username: data.user.username
 		};
+		customerPage = 'dashboard';
 		applyRoleUI();
+		if (currentSession.role === 'customer') {
+			await loadCustomerProfile();
+		}
 		searchRooms();
 	} catch (error) {
 		authStatus.textContent = `Login failed: ${error.message}`;
@@ -445,6 +559,7 @@ async function register(event) {
 
 function logout() {
 	currentSession = null;
+	closeCustomerDialogs();
 	applyRoleUI();
 	showAuthPage('role');
 	selectedRole = null;
@@ -489,6 +604,29 @@ window.addEventListener('DOMContentLoaded', async () => {
 	loginForm.addEventListener('submit', login);
 	registerForm.addEventListener('submit', register);
 	logoutBtn.addEventListener('click', logout);
+	dashboardBtn.addEventListener('click', () => {
+		if (currentSession?.role === 'customer') {
+			showCustomerPage('dashboard');
+		}
+	});
+	myAccountBtn.addEventListener('click', () => {
+		if (currentSession?.role === 'customer') {
+			showCustomerPage('account');
+		}
+	});
+	document.getElementById('dialogCloseDashboardBtn').addEventListener('click', () => customerDashboardPage.close());
+	document.getElementById('dialogCloseAccountBtn').addEventListener('click', () => customerAccountPage.close());
+	customerDashboardPage.addEventListener('close', () => {
+		if (currentSession?.role === 'customer' && customerPage === 'dashboard') {
+			customerPage = 'dashboard';
+		}
+	});
+	customerAccountPage.addEventListener('close', () => {
+		if (currentSession?.role === 'customer' && customerPage === 'account') {
+			customerPage = 'dashboard';
+			applyRoleUI();
+		}
+	});
 
 	searchForm.addEventListener('submit', searchRooms);
 	resetBtn.addEventListener('click', () => {
@@ -497,6 +635,14 @@ window.addEventListener('DOMContentLoaded', async () => {
 	});
 
 	bookingForm.addEventListener('submit', createBooking);
+	customerProfileForm.addEventListener('submit', updateCustomerProfile);
+	reloadCustomerProfileBtn.addEventListener('click', () => loadCustomerProfile());
+	deleteCustomerAccountBtn.addEventListener('click', deleteCustomerAccount);
+	backToDashboardBtn.addEventListener('click', () => {
+		if (currentSession?.role === 'customer') {
+			showCustomerPage('dashboard');
+		}
+	});
 	checkinForm.addEventListener('submit', convertCheckin);
 	directRentingForm.addEventListener('submit', createDirectRenting);
 	paymentForm.addEventListener('submit', addPayment);

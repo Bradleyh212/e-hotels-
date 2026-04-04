@@ -73,7 +73,11 @@
 					<h1>e-Hotels Portal</h1>
 					<p id="sessionLabel"></p>
 				</div>
-				<button id="logoutBtn" type="button">Logout</button>
+				<div class="actions header-actions">
+					<button id="dashboardBtn" type="button">Dashboard</button>
+					<button id="myAccountBtn" type="button">My Account</button>
+					<button id="logoutBtn" type="button">Logout</button>
+				</div>
 			</div>
 		</section>
 
@@ -155,8 +159,13 @@
 			<div id="results" class="results-grid"></div>
 		</section>
 
-		<section id="customerSection">
-			<h2>Customer Actions</h2>
+		<dialog id="customerDashboardPage" class="panel-dialog">
+			<h2>Customer Dashboard</h2>
+			<p class="section-hint">Use this area to book rooms, update your profile, or delete your account.</p>
+			<div class="dialog-actions">
+				<button type="button" id="dialogCloseDashboardBtn">Close</button>
+			</div>
+
 			<form id="bookingForm" class="form-grid">
 				<div>
 					<label for="bookingRoomId">Room ID</label>
@@ -178,7 +187,52 @@
 					<button type="submit">Create Booking</button>
 				</div>
 			</form>
-		</section>
+		</dialog>
+
+		<dialog id="customerAccountPage" class="panel-dialog">
+			<div class="row-between">
+				<div>
+					<h2>My Profile & Account</h2>
+					<p class="section-hint">Update your personal information or delete your account here.</p>
+				</div>
+				<div class="dialog-actions">
+					<button type="button" id="backToDashboardBtn">Back to Dashboard</button>
+					<button type="button" id="dialogCloseAccountBtn">Close</button>
+				</div>
+			</div>
+			<form id="customerProfileForm" class="form-grid">
+				<div>
+					<label>Full Name</label>
+					<input name="full_name" required>
+				</div>
+				<div>
+					<label>Address</label>
+					<input name="address">
+				</div>
+				<div>
+					<label>ID Type</label>
+					<input name="id_type" required>
+				</div>
+				<div>
+					<label>ID Number</label>
+					<input name="id_number" required>
+				</div>
+				<div>
+					<label>Username</label>
+					<input name="username" required>
+				</div>
+				<div>
+					<label>New Password (optional)</label>
+					<input name="password" type="password" placeholder="Leave blank to keep current password">
+				</div>
+				<div class="full-row actions">
+					<button type="button" id="reloadCustomerProfileBtn">Reload My Info</button>
+					<button type="submit">Update My Info</button>
+					<button type="button" id="deleteCustomerAccountBtn">Delete My Account</button>
+				</div>
+			</form>
+			<p id="customerProfileStatus"></p>
+		</dialog>
 
 		<section id="employeeSection" class="hidden">
 			<h2>Employee Actions</h2>
