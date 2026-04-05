@@ -447,6 +447,7 @@ async function addPayment(event) {
         });
         showEmployeeMessage(`✅ Payment of $${payload.amount} added to Renting #${payload.rent_id}`);
         employeeActionOutput.textContent = `New Total Paid: $${renting.amount_paid}`;
+		loadAllManagementData();
     } catch (error) {
         showEmployeeMessage(`❌ Payment failed: ${error.message}`, true);
         employeeActionOutput.textContent = '';
