@@ -1099,3 +1099,21 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);
 });
+// 1. Active Bookings (Current upcoming reservations)
+app.get('/api/management/active-bookings', asyncHandler(async (req, res) => {
+    const result = await pool.query(`
+        SELECT b.book_id, c.full_name as customer_name, h.name as hotel_name, r.room_number, b.start_date, b.end_date
+        FROM booking b
+        JOIN customer c ON b.cust_id = c.cust_id
+        JOIN room r ON b.room_id = r.room_id
+        JOIN hotel h ON r.hotel_id = h.hotel_id
+        ORDER BY b.start_date ASC
+    `);
+    res.json(result.rows);
+}));
+
+// 2. Renting Archive (History of completed/deleted stays)
+app.get('/api/management/archive-rentings', asyncHandler(async (req, res) => {
+    const result = await pool.query('SELECT * FROM archive_renting ORDER BY archive_id DESC');
+    res.json(result.rows);
+}));

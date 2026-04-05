@@ -119,6 +119,7 @@ function applyRoleUI() {
 		populateHotelsForCrud();
 		populateChainsForCrud();
 		refreshBookingDropdown();
+		loadAllManagementData();
 	}
 
 	if (isCustomer) {
@@ -957,29 +958,45 @@ function openTab(evt, tabName) {
     evt.currentTarget.className += " active";
     
     // Refresh data when switching
-    loadManagementTables();
+    loadAllManagementData();
 }
 
 // Function to load the management data
-async function loadManagementTables() {
+
+
+// Call this inside your existing applyRoleUI() function if user is an employee
+// loadManagementTables();
+// Consolidated function to refresh all 4 tables
+async function loadAllManagementData() {
+    if (!currentSession || currentSession.role !== 'employee') return;
+
     try {
-        // Load Rentings
+        // Load 1: Active Bookings
+        const activeBooks = await apiFetch('/api/management/active-bookings');
+        document.getElementById('activeBookingsBody').innerHTML = activeBooks.map(b => `
+            <tr>
+                <td>${b.book_id}</td>
+                <td>${b.customer_name}</td>
+                <td>${b.hotel_name} (Rm ${b.room_number})</td>
+                <td>${new Date(b.start_date).toLocaleDateString()} - ${new Date(b.end_date).toLocaleDateString()}</td>
+            </tr>
+        `).join('');
+
+        // Load 2: Active Rentings - Including the current Amount Paid
         const rentings = await apiFetch('/api/rentings');
-        const rBody = document.getElementById('rentingsTableBody');
-        rBody.innerHTML = rentings.map(r => `
+        document.getElementById('rentingsTableBody').innerHTML = rentings.map(r => `
             <tr>
                 <td>${r.rent_id}</td>
                 <td>Room ${r.room_id}</td>
                 <td>Cust ${r.cust_id}</td>
-                <td>${new Date(r.checkin_date).toLocaleDateString()}</td>
-                <td>${new Date(r.checkout_date).toLocaleDateString()}</td>
+                <td>${new Date(r.checkin_date).toLocaleDateString()} - ${new Date(r.checkout_date).toLocaleDateString()}</td>
+                <td><strong>$${r.amount_paid || '0.00'}</strong></td>
             </tr>
         `).join('');
 
-        // Load Archived Bookings
-        const archives = await apiFetch('/api/archives/bookings');
-        const aBody = document.getElementById('archiveBookingsTableBody');
-        aBody.innerHTML = archives.map(a => `
+        // Load 3: Booking Archive
+        const archBookings = await apiFetch('/api/archives/bookings');
+        document.getElementById('archiveBookingsTableBody').innerHTML = archBookings.map(a => `
             <tr>
                 <td>${a.old_book_id}</td>
                 <td>${a.customer_name}</td>
@@ -988,10 +1005,37 @@ async function loadManagementTables() {
                 <td>${new Date(a.start_date).toLocaleDateString()} - ${new Date(a.end_date).toLocaleDateString()}</td>
             </tr>
         `).join('');
-    } catch (error) {
-        console.error("Error loading management tables:", error);
+
+        // Load 4: Renting Archive - History of stays only (No payment)
+        const archRents = await apiFetch('/api/management/archive-rentings');
+        document.getElementById('archiveRentingsBody').innerHTML = archRents.map(r => `
+            <tr>
+                <td>${r.old_rent_id}</td>
+                <td>${r.customer_name}</td>
+                <td>${r.room_number}</td>
+                <td>${new Date(r.checkin_date).toLocaleDateString()} - ${new Date(r.checkout_date).toLocaleDateString()}</td>
+            </tr>
+        `).join('');
+
+    } catch (err) {
+        console.error("Management Dashboard failed to load:", err);
     }
 }
 
-// Call this inside your existing applyRoleUI() function if user is an employee
-// loadManagementTables();
+// Fixed tab switcher
+function manageTabs(evt, tabName) {
+    const contents = document.getElementsByClassName("mgmt-content");
+    for (let i = 0; i < contents.length; i++) {
+        contents[i].style.display = "none";
+    }
+
+    const links = document.getElementsByClassName("tab-link");
+    for (let i = 0; i < links.length; i++) {
+        links[i].classList.remove("active");
+    }
+
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.classList.add("active");
+
+    loadAllManagementData(); // Refresh all data when switching tabs
+}

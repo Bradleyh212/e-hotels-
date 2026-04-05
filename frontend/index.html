@@ -282,6 +282,54 @@
 			<pre id="employeeActionOutput"></pre>
 		</section>
 
+
+<section id="managementSection" class="employee-only">
+    <hr>
+    <h2>Hotel Operations & History</h2>
+    
+    <div class="tabs">
+        <button class="tab-link active" onclick="manageTabs(event, 'tab-active-bookings')">Active Bookings</button>
+        <button class="tab-link" onclick="manageTabs(event, 'tab-active-rentings')">Active Rentings</button>
+        <button class="tab-link" onclick="manageTabs(event, 'tab-archive-bookings')">Booking Archive</button>
+        <button class="tab-link" onclick="manageTabs(event, 'tab-archive-rentings')">Renting Archive</button>
+    </div>
+
+    <div id="tab-active-bookings" class="mgmt-content">
+        <h3>Current Upcoming Reservations</h3>
+        <table class="data-table">
+            <thead><tr><th>ID</th><th>Customer</th><th>Hotel/Room</th><th>Dates</th></tr></thead>
+            <tbody id="activeBookingsBody"></tbody>
+        </table>
+    </div>
+
+	<div id="tab-active-rentings" class="mgmt-content" style="display:none">
+		<h3>Current Guests (In-House)</h3>
+		<table class="data-table">
+			<thead>
+				<tr><th>ID</th><th>Room</th><th>Customer</th><th>Dates</th><th>Amount Paid</th></tr>
+			</thead>
+			<tbody id="rentingsTableBody"></tbody>
+		</table>
+	</div>
+
+    <div id="tab-archive-bookings" class="mgmt-content" style="display:none">
+        <h3>Booking History (Archived)</h3>
+        <table class="data-table">
+            <thead><tr><th>Old ID</th><th>Customer</th><th>Hotel</th><th>Room</th><th>Dates</th></tr></thead>
+            <tbody id="archiveBookingsTableBody"></tbody>
+        </table>
+    </div>
+
+	<div id="tab-archive-rentings" class="mgmt-content" style="display:none">
+		<h3>Completed Stay History (Archived)</h3>
+		<table class="data-table">
+			<thead>
+				<tr><th>Old ID</th><th>Customer</th><th>Room</th><th>Stay Dates</th></tr>
+			</thead>
+			<tbody id="archiveRentingsBody"></tbody>
+		</table>
+	</div>
+</section>
 		<section id="adminSection" class="hidden">
 			<h2>Admin CRUD (Customers, Employees, Hotels, Rooms)</h2>
 			<p id="crudStatus"></p>
@@ -424,35 +472,6 @@
 			<pre id="crudOutput"></pre>
 		</section>
 
-		<section id="managementSection" class="employee-only">
-			<hr>
-			<h2>Hotel Operations & History</h2>
-			
-			<div class="tabs">
-				<button class="tab-link active" onclick="openTab(event, 'tab-active-rentings')">Active Rentings</button>
-				<button class="tab-link" onclick="openTab(event, 'tab-archive-bookings')">Booking Archive</button>
-			</div>
-
-			<div id="tab-active-rentings" class="tab-content">
-				<h3>Current Guests</h3>
-				<table class="data-table">
-					<thead>
-						<tr><th>ID</th><th>Room</th><th>Customer</th><th>Check-in</th><th>Check-out</th></tr>
-					</thead>
-					<tbody id="rentingsTableBody"></tbody>
-				</table>
-			</div>
-
-			<div id="tab-archive-bookings" class="tab-content" style="display:none">
-				<h3>Booking History (Archived)</h3>
-				<table class="data-table">
-					<thead>
-						<tr><th>Old ID</th><th>Customer</th><th>Hotel</th><th>Room</th><th>Dates</th></tr>
-					</thead>
-					<tbody id="archiveBookingsTableBody"></tbody>
-				</table>
-			</div>
-		</section>
 
 		<section id="viewsSection">
 			<h2>SQL Views</h2>
