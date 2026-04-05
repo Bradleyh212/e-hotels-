@@ -49,7 +49,8 @@ CREATE TABLE Customer (
     Address VARCHAR(255),
     ID_Type VARCHAR(50) NOT NULL,
     ID_Number VARCHAR(50) NOT NULL,
-    Registration_Date DATE DEFAULT CURRENT_DATE
+    Registration_Date DATE DEFAULT CURRENT_DATE,
+    CONSTRAINT unique_customer_id UNIQUE (ID_Type, ID_Number)
 );
 
 CREATE TABLE App_User (

@@ -561,16 +561,72 @@ app.post('/api/customers', asyncHandler(async (req, res) => {
 }));
 
 app.put('/api/customers/:id', asyncHandler(async (req, res) => {
-	const { id } = req.params;
+	const customerId = Number(req.params.id);
 	const { full_name, address, id_type, id_number } = req.body;
+
+	if (!customerId) {
+		return res.status(400).json({ error: 'Valid customer id is required' });
+	}
+
+	if (!full_name || !id_type || !id_number) {
+		return res.status(400).json({ error: 'full_name, id_type, and id_number are required' });
+	}
+
+	try {
+		const duplicateCheck = await pool.query(
+			`SELECT cust_id
+			 FROM customer
+			 WHERE id_type = $1
+			 AND id_number = $2
+			 AND cust_id <> $3`,
+			[id_type, id_number, customerId]
+		);
+
+		if (duplicateCheck.rows.length) {
+			return res.status(409).json({ error: 'A customer with this ID already exists' });
+		}
+
+		const result = await pool.query(
+			`UPDATE customer
+			 SET full_name = $1,
+				 address = $2,
+				 id_type = $3,
+				 id_number = $4
+			 WHERE cust_id = $5
+			 RETURNING *`,
+			[full_name, address || null, id_type, id_number, customerId]
+		);
+
+		if (!result.rows.length) {
+			return res.status(404).json({ error: 'Customer not found' });
+		}
+
+		res.json(result.rows[0]);
+	} catch (error) {
+		if (error.code === '23505') {
+			return res.status(409).json({ error: 'A customer with this ID already exists' });
+		}
+		throw error;
+	}
+}));
+
+app.delete('/api/customers/:id', asyncHandler(async (req, res) => {
+	const customerId = Number(req.params.id);
+
+	if (!customerId) {
+		return res.status(400).json({ error: 'Valid customer id is required' });
+	}
+
 	const result = await pool.query(
-		`UPDATE customer SET full_name = $1, address = $2, id_type = $3, id_number = $4 WHERE cust_id = $5 RETURNING *`,
-		[full_name, address, id_type, id_number, id]
+		'DELETE FROM customer WHERE cust_id = $1 RETURNING cust_id',
+		[customerId]
 	);
+
 	if (!result.rows.length) {
 		return res.status(404).json({ error: 'Customer not found' });
 	}
-	res.json(result.rows[0]);
+
+	res.json({ deleted: true });
 }));
 
 app.delete('/api/customers/:id', asyncHandler(async (req, res) => {
@@ -588,33 +644,110 @@ app.get('/api/employees', asyncHandler(async (req, res) => {
 
 app.post('/api/employees', asyncHandler(async (req, res) => {
 	const { chain_id, ssn_sin, full_name, address, role } = req.body;
-	
-	// Map chain_id to hotel_id (first hotel of each chain)
-	const hotelId = ((chain_id - 1) * 8) + 1;
-	
-	const result = await pool.query(
-		`INSERT INTO employee (hotel_id, ssn_sin, full_name, address, role)
-		 VALUES ($1, $2, $3, $4, $5)
-		 RETURNING *`,
-		[hotelId, ssn_sin, full_name, address, role]
+
+	if (!chain_id || !ssn_sin || !full_name || !role) {
+		return res.status(400).json({ error: 'chain_id, ssn_sin, full_name, and role are required' });
+	}
+
+	const hotelResult = await pool.query(
+		'SELECT hotel_id FROM hotel WHERE chain_id = $1 ORDER BY hotel_id LIMIT 1',
+		[chain_id]
 	);
-	res.status(201).json(result.rows[0]);
+
+	if (!hotelResult.rows.length) {
+		return res.status(400).json({ error: 'No hotel found for selected chain' });
+	}
+
+	const hotelId = hotelResult.rows[0].hotel_id;
+
+	try {
+		const result = await pool.query(
+			`INSERT INTO employee (hotel_id, ssn_sin, full_name, address, role)
+			 VALUES ($1, $2, $3, $4, $5)
+			 RETURNING *`,
+			[hotelId, ssn_sin, full_name, address || null, role]
+		);
+
+		res.status(201).json(result.rows[0]);
+	} catch (error) {
+		if (error.code === '23505') {
+			return res.status(409).json({ error: 'An employee with this SSN/SIN already exists' });
+		}
+		throw error;
+	}
 }));
 
 app.put('/api/employees/:id', asyncHandler(async (req, res) => {
 	const { chain_id, ssn_sin, full_name, address, role } = req.body;
-	
-	// Map chain_id to hotel_id (first hotel of each chain)
-	const hotelId = ((chain_id - 1) * 8) + 1;
-	
-	const result = await pool.query(
-		`UPDATE employee SET hotel_id = $1, ssn_sin = $2, full_name = $3, address = $4, role = $5 WHERE emp_id = $6 RETURNING *`,
-		[hotelId, ssn_sin, full_name, address, role, req.params.id]
+	const employeeId = Number(req.params.id);
+
+	if (!employeeId) {
+		return res.status(400).json({ error: 'Valid employee id is required' });
+	}
+
+	if (!chain_id || !ssn_sin || !full_name || !role) {
+		return res.status(400).json({ error: 'chain_id, ssn_sin, full_name, and role are required' });
+	}
+
+	const hotelResult = await pool.query(
+		'SELECT hotel_id FROM hotel WHERE chain_id = $1 ORDER BY hotel_id LIMIT 1',
+		[chain_id]
 	);
+
+	if (!hotelResult.rows.length) {
+		return res.status(400).json({ error: 'No hotel found for selected chain' });
+	}
+
+	const hotelId = hotelResult.rows[0].hotel_id;
+
+	const duplicateCheck = await pool.query(
+		`SELECT emp_id
+		 FROM employee
+		 WHERE ssn_sin = $1
+		 AND emp_id <> $2`,
+		[ssn_sin, employeeId]
+	);
+
+	if (duplicateCheck.rows.length) {
+		return res.status(409).json({ error: 'An employee with this SSN/SIN already exists' });
+	}
+
+	const result = await pool.query(
+		`UPDATE employee
+		 SET hotel_id = $1,
+			 ssn_sin = $2,
+			 full_name = $3,
+			 address = $4,
+			 role = $5
+		 WHERE emp_id = $6
+		 RETURNING *`,
+		[hotelId, ssn_sin, full_name, address || null, role, employeeId]
+	);
+
 	if (!result.rows.length) {
 		return res.status(404).json({ error: 'Employee not found' });
 	}
+
 	res.json(result.rows[0]);
+}));
+
+app.delete('/api/employees/:id', asyncHandler(async (req, res) => {
+	const employeeId = Number(req.params.id);
+
+	if (!employeeId) {
+		return res.status(400).json({ error: 'Valid employee id is required' });
+	}
+
+	const result = await pool.query(
+		'DELETE FROM employee WHERE emp_id = $1 RETURNING emp_id',
+		[employeeId]
+	);
+
+	if (!result.rows.length) {
+		return res.status(404).json({ error: 'Employee not found' });
+	}
+
+	res.json({ deleted: true });
 }));
 
 app.delete('/api/employees/:id', asyncHandler(async (req, res) => {
@@ -642,16 +775,102 @@ app.post('/api/hotels', asyncHandler(async (req, res) => {
 }));
 
 app.put('/api/hotels/:id', asyncHandler(async (req, res) => {
+	const hotelId = Number(req.params.id);
 	const { chain_id, name, rating, address, email, phone, manager_id } = req.body;
+
+	if (!hotelId) {
+		return res.status(400).json({ error: 'Valid hotel id is required' });
+	}
+
+	if (!chain_id || !name || !rating || !address) {
+		return res.status(400).json({ error: 'chain_id, name, rating, and address are required' });
+	}
+
+	try {
+		const result = await pool.query(
+			`UPDATE hotel
+			 SET chain_id = $1,
+				 name = $2,
+				 rating = $3,
+				 address = $4,
+				 email = $5,
+				 phone = $6,
+				 manager_id = $7
+			 WHERE hotel_id = $8
+			 RETURNING *`,
+			[chain_id, name, rating, address, email || null, phone || null, manager_id || null, hotelId]
+		);
+
+		if (!result.rows.length) {
+			return res.status(404).json({ error: 'Hotel not found' });
+		}
+
+		res.json(result.rows[0]);
+	} catch (error) {
+		if (error.code === '23503') {
+			return res.status(409).json({ error: 'Invalid chain or manager reference' });
+		}
+		throw error;
+	}
+}));
+
+app.put('/api/hotels/:id', asyncHandler(async (req, res) => {
+	const hotelId = Number(req.params.id);
+	const { chain_id, name, rating, address, email, phone, manager_id } = req.body;
+
+	if (!hotelId) {
+		return res.status(400).json({ error: 'Valid hotel id is required' });
+	}
+
+	if (!chain_id || !name || !rating || !address) {
+		return res.status(400).json({ error: 'chain_id, name, rating, and address are required' });
+	}
+
+	try {
+		const result = await pool.query(
+			`UPDATE hotel
+			 SET chain_id = $1,
+				 name = $2,
+				 rating = $3,
+				 address = $4,
+				 email = $5,
+				 phone = $6,
+				 manager_id = $7
+			 WHERE hotel_id = $8
+			 RETURNING *`,
+			[chain_id, name, rating, address, email || null, phone || null, manager_id || null, hotelId]
+		);
+
+		if (!result.rows.length) {
+			return res.status(404).json({ error: 'Hotel not found' });
+		}
+
+		res.json(result.rows[0]);
+	} catch (error) {
+		if (error.code === '23503') {
+			return res.status(409).json({ error: 'Invalid chain or manager reference' });
+		}
+		throw error;
+	}
+}));
+
+app.delete('/api/hotels/:id', asyncHandler(async (req, res) => {
+	const hotelId = Number(req.params.id);
+
+	if (!hotelId) {
+		return res.status(400).json({ error: 'Valid hotel id is required' });
+	}
+
 	const result = await pool.query(
-		`UPDATE hotel SET chain_id = $1, name = $2, rating = $3, address = $4, email = $5, phone = $6, manager_id = $7
-		 WHERE hotel_id = $8 RETURNING *`,
-		[chain_id, name, rating, address, email, phone, manager_id || null, req.params.id]
+		'DELETE FROM hotel WHERE hotel_id = $1 RETURNING hotel_id',
+		[hotelId]
 	);
+
 	if (!result.rows.length) {
 		return res.status(404).json({ error: 'Hotel not found' });
 	}
-	res.json(result.rows[0]);
+
+	res.json({ deleted: true });
 }));
 
 app.delete('/api/hotels/:id', asyncHandler(async (req, res) => {
@@ -695,17 +914,71 @@ app.put('/api/rooms/:id', asyncHandler(async (req, res) => {
 	res.json(result.rows[0]);
 }));
 
+app.put('/api/rooms/:id', asyncHandler(async (req, res) => {
+	const roomId = Number(req.params.id);
+	const { hotel_id, room_number, price, capacity, view_type, extendable, status } = req.body;
+
+	if (!roomId) {
+		return res.status(400).json({ error: 'Valid room id is required' });
+	}
+
+	if (!hotel_id || !room_number || !price || !capacity) {
+		return res.status(400).json({ error: 'hotel_id, room_number, price, and capacity are required' });
+	}
+
+	const extendableValue =
+		extendable === 'true' ? true :
+		extendable === 'false' ? false :
+		(extendable !== undefined ? !!extendable : false);
+
+	try {
+		const result = await pool.query(
+			`UPDATE room
+			 SET hotel_id = $1,
+				 room_number = $2,
+				 price = $3,
+				 capacity = $4,
+				 view_type = $5,
+				 extendable = $6,
+				 status = $7
+			 WHERE room_id = $8
+			 RETURNING *`,
+			[hotel_id, room_number, price, capacity, view_type || null, extendableValue, status || 'Available', roomId]
+		);
+
+		if (!result.rows.length) {
+			return res.status(404).json({ error: 'Room not found' });
+		}
+
+		res.json(result.rows[0]);
+	} catch (error) {
+		if (error.code === '23503') {
+			return res.status(409).json({ error: 'Invalid hotel reference' });
+		}
+		if (error.code === '23505') {
+			return res.status(409).json({ error: 'A room with this number already exists in the selected hotel' });
+		}
+		throw error;
+	}
+}));
+
 app.delete('/api/rooms/:id', asyncHandler(async (req, res) => {
-	const result = await pool.query('DELETE FROM room WHERE room_id = $1 RETURNING room_id', [req.params.id]);
+	const roomId = Number(req.params.id);
+
+	if (!roomId) {
+		return res.status(400).json({ error: 'Valid room id is required' });
+	}
+
+	const result = await pool.query(
+		'DELETE FROM room WHERE room_id = $1 RETURNING room_id',
+		[roomId]
+	);
+
 	if (!result.rows.length) {
 		return res.status(404).json({ error: 'Room not found' });
 	}
-	res.json({ deleted: true });
-}));
 
-app.get('/api/bookings', asyncHandler(async (req, res) => {
-	const result = await pool.query('SELECT * FROM booking ORDER BY book_id');
-	res.json(result.rows);
+	res.json({ deleted: true });
 }));
 
 app.post('/api/bookings', asyncHandler(async (req, res) => {

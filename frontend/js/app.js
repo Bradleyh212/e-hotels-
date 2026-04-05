@@ -42,7 +42,7 @@ const deleteCustomerAccountBtn = document.getElementById('deleteCustomerAccountB
 const customerProfileStatus = document.getElementById('customerProfileStatus');
 const checkinForm = document.getElementById('checkinForm');
 const directRentingForm = document.getElementById('directRentingForm');
-const paymentForm = document.getElementById('paymentForm');
+const paymeantForm = document.getElementById('paymentForm');
 
 const crudStatus = document.getElementById('crudStatus');
 const crudOutput = document.getElementById('crudOutput');
@@ -131,7 +131,7 @@ function applyRoleUI() {
 		closeCustomerDialogs();
 	}
 
-	sessionLabel.textContent = `Logged in as ${currentSession.role} (${currentSession.username}) - customer id ${currentSession.profileId}`;
+	sessionLabel.textContent = `Logged in as ${currentSession.role} (${currentSession.username}) - profile id : ${currentSession.profileId}`;
 	if (isCustomer) {
 		document.getElementById('bookingCustId').value = currentSession.profileId;
 	}
@@ -468,59 +468,142 @@ async function handleCrud(form, action) {
 		return;
 	}
 
-	// Validate form before submitting (except for delete and list)
 	if (action !== 'delete' && action !== 'list') {
 		if (!validateCrudForm(form)) {
 			return;
 		}
 	}
 
-	const config = buildCrudConfig(form.id);
+	const formId = form.getAttribute('id');
+	const config = buildCrudConfig(formId);
 	const formData = Object.fromEntries(new FormData(form).entries());
 	const id = formData.id;
 	const payload = {};
+	const entity = formId.replace('CrudForm', '');
+
+	// ID required for update/delete
+	if ((action === 'update' || action === 'delete') && !id) {
+		showCrudMessage(`❌ ${entity} ${action} failed: ID is required`, true);
+		crudOutput.textContent = '';
+		return;
+	}
+
 	config.fields.forEach(field => {
 		if (formData[field] !== undefined && formData[field] !== '') {
 			let value = formData[field];
-			
-			// Convert numeric fields
+
 			if (field === 'price' || field === 'chain_id' || field === 'hotel_id' || field === 'manager_id') {
 				value = parseFloat(value);
 			}
-			
-			// Convert extendable boolean field
+
 			if (field === 'extendable') {
 				value = value === 'true' ? true : value === 'false' ? false : !!value;
 			}
-			
-			// Convert rating to integer
+
 			if (field === 'rating') {
 				value = parseInt(value);
 			}
-			
+
 			payload[field] = value;
 		}
 	});
 
 	try {
 		let result;
+
 		if (action === 'create') {
-			result = await apiFetch(config.base, { method: 'POST', body: JSON.stringify(payload) });
+			result = await apiFetch(config.base, {
+				method: 'POST',
+				body: JSON.stringify(payload)
+			});
 		}
+
 		if (action === 'update') {
-			result = await apiFetch(`${config.base}/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+			result = await apiFetch(`${config.base}/${id}`, {
+				method: 'PUT',
+				body: JSON.stringify(payload)
+			});
 		}
+
 		if (action === 'delete') {
-			result = await apiFetch(`${config.base}/${id}`, { method: 'DELETE' });
+			result = await apiFetch(`${config.base}/${id}`, {
+				method: 'DELETE'
+			});
 		}
+
 		if (action === 'list') {
 			result = await apiFetch(config.base);
 		}
 
-		crudStatus.textContent = `${form.id.replace('CrudForm', '')} ${action} successful.`;
-		crudOutput.textContent = JSON.stringify(result, null, 2);
+		let createdId = '';
+
+		if (entity === 'employee') {
+			createdId = result?.emp_id || '';
+		} else if (entity === 'customer') {
+			createdId = result?.cust_id || '';
+		} else if (entity === 'hotel') {
+			createdId = result?.hotel_id || '';
+		} else if (entity === 'room') {
+			createdId = result?.room_id || '';
+		} else {
+			createdId =
+				result?.id ||
+				result?.emp_id ||
+				result?.cust_id ||
+				result?.hotel_id ||
+				result?.room_id ||
+				result?.chain_id ||
+				'';
+		}
+
+		if (action === 'create') {
+			showCrudMessage(`✅ ${entity} created successfully!`, false);
+			crudOutput.textContent = createdId
+				? `${entity} ID: ${createdId}`
+				: JSON.stringify(result, null, 2);
+
+			const idInput = form.querySelector('input[name="id"]');
+			if (idInput && createdId) {
+				idInput.value = createdId;
+			}
+		} else if (action === 'update') {
+			showCrudMessage(`✅ ${entity} updated successfully!`, false);
+			crudOutput.textContent = JSON.stringify(result, null, 2);
+		} else if (action === 'delete') {
+			showCrudMessage(`✅ ${entity} deleted successfully!`, false);
+			crudOutput.textContent = JSON.stringify(result, null, 2);
+
+			const idInput = form.querySelector('input[name="id"]');
+			if (idInput) {
+				idInput.value = '';
+			}
+		} else if (action === 'list') {
+			showCrudMessage(`✅ ${entity} list loaded successfully!`, false);
+			crudOutput.textContent = JSON.stringify(result, null, 2);
+		}
 	} catch (error) {
-		crudStatus.textContent = `${form.id.replace('CrudForm', '')} ${action} failed: ${error.message}`;
+		console.error('CRUD caught error:', error);
+
+		let message = error.message || 'Unknown error';
+
+		if (message.includes('duplicate')) {
+			message = 'Duplicate entry already exists';
+		}
+		if (message.includes('null value')) {
+			message = 'Missing required fields';
+		}
+		if (message.includes('SSN/SIN already exists')) {
+			message = 'An employee with this SSN/SIN already exists';
+		}
+		if (message.includes('A customer with this ID already exists')) {
+			message = 'A customer with this ID already exists';
+		}
+		if (message.includes('ID is required')) {
+			message = 'ID is required';
+		}
+
+		showCrudMessage(`❌ ${entity} ${action} failed: ${message}`, true);
+		crudOutput.textContent = '';
 	}
 }
 
@@ -735,6 +818,12 @@ function logout() {
 	searchForm.reset();
 	resultsDiv.innerHTML = '';
 	statusMessage.textContent = '';
+}
+
+function showCrudMessage(message, isError = false) {
+	crudStatus.textContent = message;
+	crudStatus.style.color = isError ? 'red' : 'green';
+	crudStatus.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
