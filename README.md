@@ -1,3 +1,14 @@
+0. Prerequisites
+
+Before running the application, make sure you have the following installed:
+	•	Node.js (includes npm)
+	Download Node.js (official site)￼
+	•	PostgreSQL
+
+To verify Node.js installation, run:
+node -v
+npm -v
+
 Setup Instructions
 	1.	Configure environment variables
 
