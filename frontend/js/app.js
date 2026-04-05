@@ -42,7 +42,7 @@ const deleteCustomerAccountBtn = document.getElementById('deleteCustomerAccountB
 const customerProfileStatus = document.getElementById('customerProfileStatus');
 const checkinForm = document.getElementById('checkinForm');
 const directRentingForm = document.getElementById('directRentingForm');
-const paymeantForm = document.getElementById('paymentForm');
+const paymentForm = document.getElementById('paymentForm');
 
 const crudStatus = document.getElementById('crudStatus');
 const crudOutput = document.getElementById('crudOutput');
@@ -118,6 +118,7 @@ function applyRoleUI() {
 	if (!isCustomer) {
 		populateHotelsForCrud();
 		populateChainsForCrud();
+		refreshBookingDropdown();
 	}
 
 	if (isCustomer) {
@@ -398,55 +399,57 @@ async function deleteCustomerAccount() {
 }
 
 async function convertCheckin(event) {
-	event.preventDefault();
-	if (!currentSession || currentSession.role !== 'employee') {
-		statusMessage.textContent = 'Only employee role can convert booking to renting.';
-		return;
-	}
-	const payload = Object.fromEntries(new FormData(checkinForm).entries());
-	try {
-		const renting = await apiFetch(`/api/bookings/${payload.booking_id}/checkin`, {
-			method: 'POST',
-			body: JSON.stringify({ emp_id: Number(currentSession.profileId) })
-		});
-		statusMessage.textContent = `Booking converted to renting ${renting.rent_id}.`;
-	} catch (error) {
-		statusMessage.textContent = `Check-in failed: ${error.message}`;
-	}
+    event.preventDefault();
+    if (!currentSession || currentSession.role !== 'employee') return;
+
+    const payload = Object.fromEntries(new FormData(checkinForm).entries());
+    try {
+        const renting = await apiFetch(`/api/bookings/${payload.booking_id}/checkin`, {
+            method: 'POST',
+            body: JSON.stringify({ emp_id: Number(currentSession.profileId) })
+        });
+        showEmployeeMessage(`✅ Successfully converted Booking #${payload.booking_id} to Renting #${renting.rent_id}`);
+        employeeActionOutput.textContent = JSON.stringify(renting, null, 2);
+        refreshBookingDropdown(); // Refresh list after conversion
+    } catch (error) {
+        showEmployeeMessage(`❌ Check-in failed: ${error.message}`, true);
+        employeeActionOutput.textContent = '';
+    }
 }
 
 async function createDirectRenting(event) {
-	event.preventDefault();
-	if (!currentSession || currentSession.role !== 'employee') {
-		statusMessage.textContent = 'Only employee role can create direct renting.';
-		return;
-	}
-	const payload = Object.fromEntries(new FormData(directRentingForm).entries());
-	payload.emp_id = currentSession.profileId;
-	try {
-		const renting = await apiFetch('/api/rentings/direct', { method: 'POST', body: JSON.stringify(payload) });
-		statusMessage.textContent = `Direct renting created with id ${renting.rent_id}.`;
-	} catch (error) {
-		statusMessage.textContent = `Direct renting failed: ${error.message}`;
-	}
+    event.preventDefault();
+    if (!currentSession || currentSession.role !== 'employee') return;
+
+    const payload = Object.fromEntries(new FormData(directRentingForm).entries());
+    payload.emp_id = currentSession.profileId;
+    try {
+        const renting = await apiFetch('/api/rentings/direct', { method: 'POST', body: JSON.stringify(payload) });
+        showEmployeeMessage(`✅ Direct Renting #${renting.rent_id} created successfully!`);
+        employeeActionOutput.textContent = JSON.stringify(renting, null, 2);
+    } catch (error) {
+        showEmployeeMessage(`❌ Direct Renting failed: ${error.message}`, true);
+        employeeActionOutput.textContent = '';
+    }
 }
 
 async function addPayment(event) {
-	event.preventDefault();
-	if (!currentSession || currentSession.role !== 'employee') {
-		statusMessage.textContent = 'Only employee role can insert payments.';
-		return;
-	}
-	const payload = Object.fromEntries(new FormData(paymentForm).entries());
-	try {
-		const renting = await apiFetch(`/api/rentings/${payload.rent_id}/payments`, {
-			method: 'POST',
-			body: JSON.stringify({ amount: Number(payload.amount) })
-		});
-		statusMessage.textContent = `Payment added. Total amount paid: ${renting.amount_paid}`;
-	} catch (error) {
-		statusMessage.textContent = `Payment failed: ${error.message}`;
-	}
+    event.preventDefault();
+    if (!currentSession || currentSession.role !== 'employee') return;
+
+    // Use the corrected 'paymentForm' variable
+    const payload = Object.fromEntries(new FormData(paymentForm).entries());
+    try {
+        const renting = await apiFetch(`/api/rentings/${payload.rent_id}/payments`, {
+            method: 'POST',
+            body: JSON.stringify({ amount: Number(payload.amount) })
+        });
+        showEmployeeMessage(`✅ Payment of $${payload.amount} added to Renting #${payload.rent_id}`);
+        employeeActionOutput.textContent = `New Total Paid: $${renting.amount_paid}`;
+    } catch (error) {
+        showEmployeeMessage(`❌ Payment failed: ${error.message}`, true);
+        employeeActionOutput.textContent = '';
+    }
 }
 
 function buildCrudConfig(formId) {
@@ -605,7 +608,33 @@ async function handleCrud(form, action) {
 		showCrudMessage(`❌ ${entity} ${action} failed: ${message}`, true);
 		crudOutput.textContent = '';
 	}
-}
+		}
+		const employeeActionStatus = document.getElementById('employeeActionStatus');
+		const employeeActionOutput = document.getElementById('employeeActionOutput');
+		const bookingIdSelect = document.getElementById('bookingIdSelect');
+
+		function showEmployeeMessage(message, isError = false) {
+			employeeActionStatus.textContent = message;
+			employeeActionStatus.style.color = isError ? 'red' : 'green';
+			employeeActionStatus.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		}
+
+		// Function to fetch all bookings and populate the dropdown
+		async function refreshBookingDropdown() {
+			try {
+				const bookings = await apiFetch('/api/bookings'); 
+				// If bookings is an empty array [], show a friendly message instead of an error
+				if (bookings.length === 0) {
+					bookingIdSelect.innerHTML = '<option value="">No upcoming reservations</option>';
+					return;
+				}
+				bookingIdSelect.innerHTML = '<option value="">-- Select a Booking --</option>' + 
+					bookings.map(b => `<option value="${b.book_id}">ID: ${b.book_id} | Cust: ${b.cust_id} | Room: ${b.room_id}</option>`).join('');
+			} catch (error) {
+				console.error("Backend Error:", error); // This tells you if the route is missing
+				bookingIdSelect.innerHTML = '<option value="">Error: Check Backend API</option>';
+			}
+		}
 
 function wireCrudForm(formId) {
 	const form = document.getElementById(formId);

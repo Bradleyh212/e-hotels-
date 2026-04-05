@@ -244,14 +244,21 @@
 			<p id="customerProfileStatus"></p>
 		</dialog>
 
+
 		<section id="employeeSection" class="hidden">
 			<h2>Employee Actions</h2>
+			<p id="employeeActionStatus"></p>
+			
 			<div class="form-grid">
 				<form id="checkinForm">
 					<h3>Booking ➜ Renting (Check-in)</h3>
-					<label>Booking ID <input name="booking_id" type="number" required></label>
+					<label>Select Active Booking
+						<select name="booking_id" id="bookingIdSelect" required>
+							<option value="">-- Loading Bookings... --</option>
+						</select>
+					</label>
 					<label>Employee ID <input name="emp_id" type="number" required readonly></label>
-					<button type="submit">Convert</button>
+					<button type="submit">Convert to Renting</button>
 				</form>
 
 				<form id="directRentingForm">
@@ -271,6 +278,8 @@
 					<button type="submit">Add Payment</button>
 				</form>
 			</div>
+			
+			<pre id="employeeActionOutput"></pre>
 		</section>
 
 		<section id="adminSection" class="hidden">
@@ -424,6 +433,14 @@
 			<pre id="viewsOutput"></pre>
 		</section>
 	</div>
+	<dialog id="crudMessageDialog">
+	<h3 id="crudMessageTitle"></h3>
+	<p id="crudMessageText"></p>
+	<div class="actions">
+		<button id="crudConfirmBtn">Confirm</button>
+		<button id="crudCancelBtn">Cancel</button>
+	</div>
+	</dialog>
 
 	<script src="./js/app.js"></script>
 </body>

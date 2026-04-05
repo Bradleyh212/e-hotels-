@@ -1002,6 +1002,11 @@ app.post('/api/bookings', asyncHandler(async (req, res) => {
 	res.status(201).json(result.rows[0]);
 }));
 
+app.get('/api/bookings', asyncHandler(async (req, res) => {
+    const result = await pool.query('SELECT * FROM booking ORDER BY start_date ASC');
+    res.json(result.rows);
+}));
+
 app.get('/api/customers/:id/bookings', asyncHandler(async (req, res) => {
 	const result = await pool.query(
 		`SELECT b.book_id, b.start_date, b.end_date, r.room_number, h.name AS hotel_name, h.address
