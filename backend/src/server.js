@@ -1060,7 +1060,17 @@ app.get('/api/rentings', asyncHandler(async (req, res) => {
 	const result = await pool.query('SELECT * FROM renting ORDER BY rent_id');
 	res.json(result.rows);
 }));
+// Get all Archived Bookings 
+app.get('/api/archives/bookings', asyncHandler(async (req, res) => {
+    const result = await pool.query('SELECT * FROM Archive_Booking ORDER BY archive_id DESC');
+    res.json(result.rows);
+}));
 
+// Get all Archived Rentings
+app.get('/api/archives/rentings', asyncHandler(async (req, res) => {
+    const result = await pool.query('SELECT * FROM Archive_Renting ORDER BY archive_id DESC');
+    res.json(result.rows);
+}));
 app.post('/api/rentings/direct', asyncHandler(async (req, res) => {
 	const { room_id, cust_id, emp_id, checkin_date, checkout_date, amount_paid } = req.body;
 	const result = await pool.query(

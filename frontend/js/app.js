@@ -942,3 +942,56 @@ window.addEventListener('DOMContentLoaded', async () => {
 	document.getElementById('loadView1').addEventListener('click', () => loadView1().catch(err => { viewsOutput.textContent = err.message; }));
 	document.getElementById('loadView2').addEventListener('click', () => loadView2().catch(err => { viewsOutput.textContent = err.message; }));
 });
+// Function to handle tab switching
+function openTab(evt, tabName) {
+    let i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("tab-content");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+    tablinks = document.getElementsByClassName("tab-link");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+    
+    // Refresh data when switching
+    loadManagementTables();
+}
+
+// Function to load the management data
+async function loadManagementTables() {
+    try {
+        // Load Rentings
+        const rentings = await apiFetch('/api/rentings');
+        const rBody = document.getElementById('rentingsTableBody');
+        rBody.innerHTML = rentings.map(r => `
+            <tr>
+                <td>${r.rent_id}</td>
+                <td>Room ${r.room_id}</td>
+                <td>Cust ${r.cust_id}</td>
+                <td>${new Date(r.checkin_date).toLocaleDateString()}</td>
+                <td>${new Date(r.checkout_date).toLocaleDateString()}</td>
+            </tr>
+        `).join('');
+
+        // Load Archived Bookings
+        const archives = await apiFetch('/api/archives/bookings');
+        const aBody = document.getElementById('archiveBookingsTableBody');
+        aBody.innerHTML = archives.map(a => `
+            <tr>
+                <td>${a.old_book_id}</td>
+                <td>${a.customer_name}</td>
+                <td>${a.hotel_name}</td>
+                <td>${a.room_number}</td>
+                <td>${new Date(a.start_date).toLocaleDateString()} - ${new Date(a.end_date).toLocaleDateString()}</td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error("Error loading management tables:", error);
+    }
+}
+
+// Call this inside your existing applyRoleUI() function if user is an employee
+// loadManagementTables();

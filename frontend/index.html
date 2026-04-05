@@ -424,6 +424,36 @@
 			<pre id="crudOutput"></pre>
 		</section>
 
+		<section id="managementSection" class="employee-only">
+			<hr>
+			<h2>Hotel Operations & History</h2>
+			
+			<div class="tabs">
+				<button class="tab-link active" onclick="openTab(event, 'tab-active-rentings')">Active Rentings</button>
+				<button class="tab-link" onclick="openTab(event, 'tab-archive-bookings')">Booking Archive</button>
+			</div>
+
+			<div id="tab-active-rentings" class="tab-content">
+				<h3>Current Guests</h3>
+				<table class="data-table">
+					<thead>
+						<tr><th>ID</th><th>Room</th><th>Customer</th><th>Check-in</th><th>Check-out</th></tr>
+					</thead>
+					<tbody id="rentingsTableBody"></tbody>
+				</table>
+			</div>
+
+			<div id="tab-archive-bookings" class="tab-content" style="display:none">
+				<h3>Booking History (Archived)</h3>
+				<table class="data-table">
+					<thead>
+						<tr><th>Old ID</th><th>Customer</th><th>Hotel</th><th>Room</th><th>Dates</th></tr>
+					</thead>
+					<tbody id="archiveBookingsTableBody"></tbody>
+				</table>
+			</div>
+		</section>
+
 		<section id="viewsSection">
 			<h2>SQL Views</h2>
 			<div class="actions">
