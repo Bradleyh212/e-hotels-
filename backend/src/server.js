@@ -1117,3 +1117,11 @@ app.get('/api/management/archive-rentings', asyncHandler(async (req, res) => {
     const result = await pool.query('SELECT * FROM archive_renting ORDER BY archive_id DESC');
     res.json(result.rows);
 }));
+
+
+app.delete('/api/rentings/:id', asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    // This deletion triggers the archive function in your DB
+    await pool.query('DELETE FROM renting WHERE rent_id = $1', [id]);
+    res.json({ message: 'Renting deleted and archived' });
+}));

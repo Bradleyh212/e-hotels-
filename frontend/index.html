@@ -279,6 +279,18 @@
 				</form>
 			</div>
 			
+		<form id="checkoutForm" class="crud-form">
+			<h3>Guest Check-out</h3>
+			<p>Enter the Renting ID to process the final check-out and archive the stay.</p>
+			<label>Renting ID
+				<input id="checkoutRentId" name="rent_id" type="number" placeholder="e.g. 101" required>
+			</label>
+			<div class="actions">
+				<button type="submit" style="background-color: #d9534f; color: white;">Process Check-out</button>
+			</div>
+		</form>
+		<p id="checkoutStatus" style="font-weight: bold; margin-top: 10px;"></p>
+			
 			<pre id="employeeActionOutput"></pre>
 		</section>
 

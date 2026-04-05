@@ -1039,3 +1039,52 @@ function manageTabs(evt, tabName) {
 
     loadAllManagementData(); // Refresh all data when switching tabs
 }
+//listener for checkout form to move renting to archive
+// Check-out Logic for Employees
+const checkoutForm = document.getElementById('checkoutForm');
+const checkoutStatus = document.getElementById('checkoutStatus');
+
+checkoutForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Clear previous status
+    checkoutStatus.textContent = "";
+    checkoutStatus.style.color = "";
+
+    const rentId = document.getElementById('checkoutRentId').value;
+
+    try {
+        // 1. Validation: Check if the Renting ID actually exists in the active list
+        const activeRentings = await apiFetch('/api/rentings');
+        const exists = activeRentings.some(r => r.rent_id == rentId);
+
+        if (!exists) {
+            checkoutStatus.textContent = `Error: Renting ID #${rentId} not found in active guests.`;
+            checkoutStatus.style.color = "red";
+            return;
+        }
+
+        // 2. Execution: Call the DELETE route
+        const response = await fetch(`${API_BASE}/api/rentings/${rentId}`, {
+            method: 'DELETE',
+        });
+
+        if (response.ok) {
+            // Success Message in Green
+            checkoutStatus.textContent = `Check-out successful! Renting #${rentId} has been moved to history.`;
+            checkoutStatus.style.color = "green";
+            checkoutForm.reset();
+            
+            // Refresh the dashboard tables automatically
+            loadAllManagementData();
+        } else {
+            const err = await response.json();
+            checkoutStatus.textContent = "Error: " + (err.message || "Failed to process check-out.");
+            checkoutStatus.style.color = "red";
+        }
+    } catch (error) {
+        console.error('Check-out error:', error);
+        checkoutStatus.textContent = "System Error: Could not connect to server.";
+        checkoutStatus.style.color = "red";
+    }
+});
