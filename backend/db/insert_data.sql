@@ -1,5 +1,3 @@
--- insert_data.sql
--- Rubric-compliant population:
 -- 5 chains, each with 8 hotels (40 total), each hotel with 5 rooms of different capacities.
 
 INSERT INTO HotelChain (Chain_ID, Office_Address, Name) VALUES
