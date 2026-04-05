@@ -107,7 +107,8 @@ EXCLUDE (room_id WITH =, daterange(start_date, end_date, '[]') WITH &&) USING GI
 
 CREATE TABLE Renting (
     Rent_ID SERIAL PRIMARY KEY,
-    Book_ID INT REFERENCES Booking(Book_ID),
+    -- ADD 'ON DELETE SET NULL' so the renting survives when booking is deleted
+    Book_ID INT REFERENCES Booking(Book_ID) ON DELETE SET NULL, 
     Room_ID INT NOT NULL REFERENCES Room(Room_ID),
     Cust_ID INT NOT NULL REFERENCES Customer(Cust_ID),
     Emp_ID INT NOT NULL REFERENCES Employee(Emp_ID),
