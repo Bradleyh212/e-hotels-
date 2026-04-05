@@ -125,7 +125,7 @@ function applyRoleUI() {
 		closeCustomerDialogs();
 	}
 
-	sessionLabel.textContent = `Logged in as ${currentSession.role} (${currentSession.username}) - profile #${currentSession.profileId}`;
+	sessionLabel.textContent = `Logged in as ${currentSession.role} (${currentSession.username}) - customer id ${currentSession.profileId}`;
 	if (isCustomer) {
 		document.getElementById('bookingCustId').value = currentSession.profileId;
 	}
@@ -209,8 +209,17 @@ function renderRooms(rooms) {
 			<p><strong>Capacity:</strong> ${room.capacity}</p>
 			<p><strong>Price:</strong> $${room.price}</p>
 			<p><strong>Area:</strong> ${room.address}</p>
-			<p><strong>Hotel Category:</strong> ${room.rating} star</p>
+			<p><strong>Rating:</strong> ${room.rating} star</p>
 			<p><strong>Total Rooms in Hotel:</strong> ${room.total_rooms}</p>
+			<details>
+				<summary>More details</summary>
+				<p><strong>Room View:</strong> ${room.view_type || 'N/A'}</p>
+				<p><strong>Extendable:</strong> ${room.extendable ? 'Yes' : 'No'}</p>
+				<p><strong>Status:</strong> ${room.status}</p>
+				<p><strong>Email:</strong> ${room.hotel_email || 'N/A'}</p>
+				<p><strong>Phone:</strong> ${room.hotel_phone || 'N/A'}</p>
+				<p><strong>Amenities:</strong> ${room.amenities?.length ? room.amenities.join(', ') : 'None listed'}</p>
+			</details>
 			<button type="button" data-room="${room.room_id}">${actionLabel}</button>
 		`;
 

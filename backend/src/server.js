@@ -418,12 +418,16 @@ app.get('/api/rooms/available', asyncHandler(async (req, res) => {
 			r.room_number,
 			r.capacity,
 			r.view_type,
+			r.extendable,
 			r.price,
 			r.status,
 			h.hotel_id,
 			h.name AS hotel_name,
 			h.address,
 			h.rating,
+			h.email AS hotel_email,
+			h.phone AS hotel_phone,
+			array_remove(array_agg(DISTINCT a.name), NULL) AS amenities,
 			hc.chain_id,
 			hc.name AS chain_name,
 			rc.total_rooms
@@ -435,9 +439,10 @@ app.get('/api/rooms/available', asyncHandler(async (req, res) => {
 			FROM room
 			GROUP BY hotel_id
 		) rc ON rc.hotel_id = h.hotel_id
+		LEFT JOIN roomhasamenity ra ON ra.room_id = r.room_id
+		LEFT JOIN amenity a ON a.amenity_id = ra.amenity_id
 		WHERE r.status = 'Available'
 	`;
-
 	const values = [];
 	let index = 1;
 
@@ -506,6 +511,7 @@ app.get('/api/rooms/available', asyncHandler(async (req, res) => {
 		index += 2;
 	}
 
+	query += ' GROUP BY r.room_id, r.room_number, r.capacity, r.view_type, r.extendable, r.price, r.status, h.hotel_id, h.name, h.address, h.rating, h.email, h.phone, hc.chain_id, hc.name, rc.total_rooms';
 	query += ' ORDER BY h.name, r.room_number';
 
 	const result = await pool.query(query, values);
