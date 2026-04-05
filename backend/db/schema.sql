@@ -1,3 +1,6 @@
+-- Enable GIST extension for date range constraints
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 CREATE TABLE HotelChain (
     Chain_ID SERIAL PRIMARY KEY,
     Office_Address VARCHAR(255) NOT NULL,
@@ -95,6 +98,11 @@ CREATE TABLE Booking (
     End_Date DATE NOT NULL,
     CHECK (Start_Date < End_Date)
 );
+
+-- Prevent double-booking: no overlapping date ranges for same room
+ALTER TABLE Booking
+ADD CONSTRAINT no_overlapping_bookings
+EXCLUDE (room_id WITH =, daterange(start_date, end_date, '[]') WITH &&) USING GIST;
 
 CREATE TABLE Renting (
     Rent_ID SERIAL PRIMARY KEY,

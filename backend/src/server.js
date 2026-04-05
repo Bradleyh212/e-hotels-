@@ -676,6 +676,16 @@ app.get('/api/bookings', asyncHandler(async (req, res) => {
 
 app.post('/api/bookings', asyncHandler(async (req, res) => {
 	const { room_id, cust_id, start_date, end_date } = req.body;
+
+	// Validate dates
+	const today = new Date().toISOString().split('T')[0];
+	if (start_date < today) {
+		return res.status(400).json({ error: 'Start date cannot be in the past' });
+	}
+	if (end_date <= start_date) {
+		return res.status(400).json({ error: 'End date must be after start date' });
+	}
+
 	const result = await pool.query(
 		`INSERT INTO booking (room_id, cust_id, start_date, end_date)
 		 VALUES ($1, $2, $3, $4)
@@ -683,6 +693,19 @@ app.post('/api/bookings', asyncHandler(async (req, res) => {
 		[room_id, cust_id, start_date, end_date]
 	);
 	res.status(201).json(result.rows[0]);
+}));
+
+app.get('/api/customers/:id/bookings', asyncHandler(async (req, res) => {
+	const result = await pool.query(
+		`SELECT b.book_id, b.start_date, b.end_date, r.room_number, h.name AS hotel_name, h.address
+		 FROM booking b
+		 JOIN room r ON b.room_id = r.room_id
+		 JOIN hotel h ON r.hotel_id = h.hotel_id
+		 WHERE b.cust_id = $1
+		 ORDER BY b.start_date DESC`,
+		[req.params.id]
+	);
+	res.json(result.rows);
 }));
 
 app.post('/api/bookings/:id/checkin', asyncHandler(async (req, res) => {

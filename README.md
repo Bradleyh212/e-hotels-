@@ -14,15 +14,32 @@ DB_NAME=e_hotels
 PORT=3000
 
 Note: `backend/setup.sh` will automatically use this root `.env` (it copies it to `backend/.env` if needed).
-	2.	Make scripts executable
+
+	2. Install PostgreSQL
+	Make sure PostgreSQL is installed and running. On **Mac**, run `brew install postgresql` and `brew services start postgresql`. On **Windows**, download and install PostgreSQL from the official website, ensure `psql` is in your PATH, and start PostgreSQL via Services or pgAdmin.
+
+3. Make Scripts Executable
 
 Run the following command once:
+
+Mac / Linux:
 chmod +x start.sh backend/setup.sh
 
-Run the Application
+Windows (Git Bash / WSL):
+chmod +x start.sh backend/setup.sh
+(Note: In PowerShell or CMD, this is not needed; use `bash start.sh` instead.)
+
+## Run the Application
 
 Start everything with one command:
+
+Mac / Linux or Git Bash / WSL:
 ./start.sh
+or
+bash start.sh
+
+Windows PowerShell / CMD:
+bash start.sh
 
 What the script does
 

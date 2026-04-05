@@ -48,6 +48,10 @@ const crudStatus = document.getElementById('crudStatus');
 const crudOutput = document.getElementById('crudOutput');
 const viewsOutput = document.getElementById('viewsOutput');
 
+const dashboardStatus = document.getElementById('dashboardStatus');
+
+const customerBookings = document.getElementById('customerBookings');
+
 const chainSelect = document.getElementById('chainId');
 const ratingSelect = document.getElementById('rating');
 const capacitySelect = document.getElementById('capacity');
@@ -114,7 +118,7 @@ function applyRoleUI() {
 		closeCustomerDialogs();
 		if (customerPage === 'account') {
 			openCustomerDialog(customerAccountPage);
-		} else {
+		} else if (customerPage === 'dashboard') {
 			openCustomerDialog(customerDashboardPage);
 		}
 	} else {
@@ -213,6 +217,7 @@ function renderRooms(rooms) {
 		card.querySelector('button').addEventListener('click', () => {
 			if (isCustomer) {
 				fillBookingRoom(room.room_id);
+				showCustomerPage('dashboard');
 				statusMessage.textContent = `Selected room ${room.room_id} for booking.`;
 			} else {
 				fillDirectRentingRoom(room.room_id);
@@ -271,10 +276,13 @@ async function createBooking(event) {
 	payload.cust_id = currentSession.profileId;
 	try {
 		const booking = await apiFetch('/api/bookings', { method: 'POST', body: JSON.stringify(payload) });
-		statusMessage.textContent = `Booking created with id ${booking.book_id}.`;
+		const checkInDate = new Date(booking.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+		const checkOutDate = new Date(booking.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+		dashboardStatus.textContent = `✅ Booking #${booking.book_id} confirmed! Check-in: ${checkInDate}, Check-out: ${checkOutDate}`;
 		searchRooms();
+		loadCustomerBookings();
 	} catch (error) {
-		statusMessage.textContent = `Booking failed: ${error.message}`;
+		dashboardStatus.textContent = `❌ Booking failed: ${error.message}`;
 	}
 }
 
@@ -294,6 +302,32 @@ async function loadCustomerProfile() {
 		customerProfileStatus.textContent = '';
 	} catch (error) {
 		customerProfileStatus.textContent = `Failed to load profile: ${error.message}`;
+	}
+}
+
+async function loadCustomerBookings() {
+	if (!currentSession || currentSession.role !== 'customer') {
+		return;
+	}
+
+	try {
+		const bookings = await apiFetch(`/api/customers/${currentSession.profileId}/bookings`);
+		customerBookings.innerHTML = '';
+		if (!bookings.length) {
+			customerBookings.innerHTML = '<p>No bookings found.</p>';
+			return;
+		}
+		const list = document.createElement('ul');
+		bookings.forEach(booking => {
+			const li = document.createElement('li');
+			const checkIn = new Date(booking.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+			const checkOut = new Date(booking.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+			li.textContent = `Booking #${booking.book_id}: Room ${booking.room_number} at ${booking.hotel_name} (${booking.address}) from ${checkIn} to ${checkOut}`;
+			list.appendChild(li);
+		});
+		customerBookings.appendChild(list);
+	} catch (error) {
+		customerBookings.innerHTML = `<p>Failed to load bookings: ${error.message}</p>`;
 	}
 }
 
@@ -505,7 +539,7 @@ async function login(event) {
 			profileId: data.user.role === 'customer' ? data.user.cust_id : data.user.emp_id,
 			username: data.user.username
 		};
-		customerPage = 'dashboard';
+		customerPage = null;
 		applyRoleUI();
 		if (currentSession.role === 'customer') {
 			await loadCustomerProfile();
@@ -606,7 +640,9 @@ window.addEventListener('DOMContentLoaded', async () => {
 	logoutBtn.addEventListener('click', logout);
 	dashboardBtn.addEventListener('click', () => {
 		if (currentSession?.role === 'customer') {
+			dashboardStatus.textContent = '';
 			showCustomerPage('dashboard');
+			loadCustomerBookings();
 		}
 	});
 	myAccountBtn.addEventListener('click', () => {
