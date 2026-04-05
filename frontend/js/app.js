@@ -114,6 +114,12 @@ function applyRoleUI() {
 	myAccountBtn.classList.toggle('hidden', !isCustomer);
 	dashboardBtn.classList.toggle('hidden', !isCustomer);
 
+	// Populate CRUD dropdowns for employee role
+	if (!isCustomer) {
+		populateHotelsForCrud();
+		populateChainsForCrud();
+	}
+
 	if (isCustomer) {
 		closeCustomerDialogs();
 		if (customerPage === 'account') {
@@ -164,10 +170,10 @@ function configureRole(role) {
 	});
 }
 
-async function loadHotelsForRegistration() {
-	const hotels = await apiFetch('/api/hotels');
-	employeeHotelSelect.innerHTML = '<option value="">Select hotel</option>' + hotels
-		.map(h => `<option value="${h.hotel_id}">${h.hotel_id} - ${h.name}</option>`)
+async function loadChainsForRegistration() {
+	const chains = await apiFetch('/api/chains');
+	employeeHotelSelect.innerHTML = '<option value="">Select hotel chain</option>' + chains
+		.map(c => `<option value="${c.chain_id}">${c.name}</option>`)
 		.join('');
 }
 
@@ -314,19 +320,6 @@ async function loadCustomerProfile() {
 	}
 }
 
-async function cancelBooking(bookingId) {
-	if (!confirm('Are you sure you want to cancel this booking?')) {
-		return;
-	}
-	try {
-		await apiFetch(`/api/bookings/${bookingId}`, { method: 'DELETE' });
-		dashboardStatus.textContent = `✅ Booking #${bookingId} cancelled successfully.`;
-		loadCustomerBookings();
-	} catch (error) {
-		dashboardStatus.textContent = `❌ Failed to cancel booking: ${error.message}`;
-	}
-}
-
 async function loadCustomerBookings() {
 	if (!currentSession || currentSession.role !== 'customer') {
 		return;
@@ -344,7 +337,7 @@ async function loadCustomerBookings() {
 			const li = document.createElement('li');
 			const checkIn = new Date(booking.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 			const checkOut = new Date(booking.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-			li.innerHTML = `Booking #${booking.book_id}: Room ${booking.room_number} at ${booking.hotel_name} (${booking.address}) from ${checkIn} to ${checkOut} <button type="button" onclick="cancelBooking(${booking.book_id})">Cancel</button>`;
+			li.textContent = `Booking #${booking.book_id}: Room ${booking.room_number} at ${booking.hotel_name} (${booking.address}) from ${checkIn} to ${checkOut}`;
 			list.appendChild(li);
 		});
 		customerBookings.appendChild(list);
@@ -461,7 +454,7 @@ function buildCrudConfig(formId) {
 		return { base: '/api/customers', fields: ['full_name', 'address', 'id_type', 'id_number'] };
 	}
 	if (formId === 'employeeCrudForm') {
-		return { base: '/api/employees', fields: ['hotel_id', 'ssn_sin', 'full_name', 'address', 'role'] };
+		return { base: '/api/employees', fields: ['chain_id', 'ssn_sin', 'full_name', 'address', 'role'] };
 	}
 	if (formId === 'hotelCrudForm') {
 		return { base: '/api/hotels', fields: ['chain_id', 'name', 'rating', 'address', 'email', 'phone', 'manager_id'] };
@@ -475,13 +468,37 @@ async function handleCrud(form, action) {
 		return;
 	}
 
+	// Validate form before submitting (except for delete and list)
+	if (action !== 'delete' && action !== 'list') {
+		if (!validateCrudForm(form)) {
+			return;
+		}
+	}
+
 	const config = buildCrudConfig(form.id);
 	const formData = Object.fromEntries(new FormData(form).entries());
 	const id = formData.id;
 	const payload = {};
 	config.fields.forEach(field => {
 		if (formData[field] !== undefined && formData[field] !== '') {
-			payload[field] = formData[field];
+			let value = formData[field];
+			
+			// Convert numeric fields
+			if (field === 'price' || field === 'chain_id' || field === 'hotel_id' || field === 'manager_id') {
+				value = parseFloat(value);
+			}
+			
+			// Convert extendable boolean field
+			if (field === 'extendable') {
+				value = value === 'true' ? true : value === 'false' ? false : !!value;
+			}
+			
+			// Convert rating to integer
+			if (field === 'rating') {
+				value = parseInt(value);
+			}
+			
+			payload[field] = value;
 		}
 	});
 
@@ -532,6 +549,100 @@ function bindLiveCriteriaSearch() {
 	});
 }
 
+async function populateHotelsForCrud() {
+	try {
+		const hotels = await apiFetch('/api/hotels');
+		if (!Array.isArray(hotels)) return;
+
+		// Populate hotel select for room form (showing hotel names)
+		const roomHotelSelect = document.querySelector('#roomCrudForm .hotel-name-select');
+		if (roomHotelSelect) {
+			roomHotelSelect.innerHTML = '<option value="">-- Select Hotel --</option>';
+			hotels.forEach(hotel => {
+				const option = document.createElement('option');
+				option.value = hotel.hotel_id;
+				option.textContent = `${hotel.name}`;
+				roomHotelSelect.appendChild(option);
+			});
+		}
+	} catch (error) {
+		console.error('Error loading hotels for CRUD:', error);
+	}
+}
+
+async function populateChainsForCrud() {
+	try {
+		const chains = await apiFetch('/api/chains');
+		if (!Array.isArray(chains)) return;
+
+		// Populate chain select for employee form
+		const employeeChainSelect = document.querySelector('#employeeCrudForm .chain-select');
+		if (employeeChainSelect) {
+			employeeChainSelect.innerHTML = '<option value="">-- Select Chain --</option>';
+			chains.forEach(chain => {
+				const option = document.createElement('option');
+				option.value = chain.chain_id;
+				option.textContent = `${chain.name}`;
+				employeeChainSelect.appendChild(option);
+			});
+		}
+
+		const chainSelect = document.querySelector('#hotelCrudForm .chain-select');
+		if (chainSelect) {
+			chainSelect.innerHTML = '<option value="">-- Select Chain --</option>';
+			chains.forEach(chain => {
+				const option = document.createElement('option');
+				option.value = chain.chain_id;
+				option.textContent = `${chain.name} (ID: ${chain.chain_id})`;
+				chainSelect.appendChild(option);
+			});
+		}
+	} catch (error) {
+		console.error('Error loading chains for CRUD:', error);
+	}
+}
+
+function validateCrudForm(form) {
+	// Validate numeric fields in room form
+	const priceInput = form.querySelector('input[name="price"]');
+	if (priceInput && priceInput.value) {
+		const price = parseFloat(priceInput.value);
+		if (isNaN(price) || price <= 0) {
+			alert('Price must be a valid positive number');
+			return false;
+		}
+	}
+
+	// Validate hotel_id is selected
+	const hotelIdSelect = form.querySelector('select[name="hotel_id"]');
+	if (hotelIdSelect && hotelIdSelect.required && !hotelIdSelect.value) {
+		alert('Please select a hotel');
+		return false;
+	}
+
+	// Validate capacity is selected
+	const capacitySelect = form.querySelector('select[name="capacity"]');
+	if (capacitySelect && capacitySelect.required && !capacitySelect.value) {
+		alert('Please select a capacity');
+		return false;
+	}
+
+	// Validate chain_id is selected
+	const chainIdSelect = form.querySelector('select[name="chain_id"]');
+	if (chainIdSelect && chainIdSelect.required && !chainIdSelect.value) {
+		alert('Please select a chain');
+		return false;
+	}
+
+	// Validate rating is selected
+	const ratingSelect = form.querySelector('select[name="rating"]');
+	if (ratingSelect && ratingSelect.required && !ratingSelect.value) {
+		alert('Please select a rating');
+		return false;
+	}
+
+	return true;
+}
 
 function showLogin(role) {
 	configureRole(role);
@@ -629,7 +740,7 @@ function logout() {
 window.addEventListener('DOMContentLoaded', async () => {
 	try {
 		await loadFilters();
-		await loadHotelsForRegistration();
+		await loadChainsForRegistration();
 		applyRoleUI();
 		showAuthPage('role');
 		bindLiveCriteriaSearch();

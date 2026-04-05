@@ -2,7 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import pool from './config/db.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -10,6 +15,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from the frontend directory
+app.use(express.static(path.join(__dirname, '../../frontend')));
 
 const asyncHandler = fn => async (req, res) => {
 	try {
@@ -69,7 +77,7 @@ app.post('/api/auth/register', asyncHandler(async (req, res) => {
 		address,
 		id_type,
 		id_number,
-		hotel_id,
+		chain_id,
 		ssn_sin,
 		employee_role
 	} = req.body;
@@ -122,22 +130,25 @@ app.post('/api/auth/register', asyncHandler(async (req, res) => {
 			});
 		}
 
-		if (!hotel_id || !ssn_sin || !full_name) {
+		if (!chain_id || !ssn_sin || !full_name) {
 			await client.query('ROLLBACK');
-			return res.status(400).json({ error: 'Employee requires hotel_id, ssn_sin, and full_name' });
+			return res.status(400).json({ error: 'Employee requires chain_id, ssn_sin, and full_name' });
 		}
 
-		const hotelExists = await client.query('SELECT hotel_id, name FROM hotel WHERE hotel_id = $1', [hotel_id]);
+		// Map chain_id to hotel_id (first hotel of each chain)
+		const hotelId = ((chain_id - 1) * 8) + 1;
+		
+		const hotelExists = await client.query('SELECT hotel_id, name FROM hotel WHERE hotel_id = $1', [hotelId]);
 		if (!hotelExists.rows.length) {
 			await client.query('ROLLBACK');
-			return res.status(400).json({ error: `Invalid hotel_id (${hotel_id}). Please choose an existing hotel.` });
+			return res.status(400).json({ error: `Invalid chain_id (${chain_id}). No hotels found for this chain.` });
 		}
 
 		const employeeResult = await client.query(
 			`INSERT INTO employee (hotel_id, ssn_sin, full_name, address, role)
 			 VALUES ($1, $2, $3, $4, $5)
 			 RETURNING emp_id, full_name`,
-			[hotel_id, ssn_sin, full_name, address || null, employee_role || 'Receptionist']
+			[hotelId, ssn_sin, full_name, address || null, employee_role || 'Receptionist']
 		);
 
 		const employee = employeeResult.rows[0];
@@ -390,6 +401,11 @@ app.get('/api/filters', asyncHandler(async (req, res) => {
 	});
 }));
 
+app.get('/api/chains', asyncHandler(async (req, res) => {
+	const result = await pool.query('SELECT chain_id, name FROM hotelchain ORDER BY name');
+	res.json(result.rows);
+}));
+
 app.get('/api/rooms/available', asyncHandler(async (req, res) => {
 	const {
 		capacity,
@@ -571,21 +587,29 @@ app.get('/api/employees', asyncHandler(async (req, res) => {
 }));
 
 app.post('/api/employees', asyncHandler(async (req, res) => {
-	const { hotel_id, ssn_sin, full_name, address, role } = req.body;
+	const { chain_id, ssn_sin, full_name, address, role } = req.body;
+	
+	// Map chain_id to hotel_id (first hotel of each chain)
+	const hotelId = ((chain_id - 1) * 8) + 1;
+	
 	const result = await pool.query(
 		`INSERT INTO employee (hotel_id, ssn_sin, full_name, address, role)
 		 VALUES ($1, $2, $3, $4, $5)
 		 RETURNING *`,
-		[hotel_id, ssn_sin, full_name, address, role]
+		[hotelId, ssn_sin, full_name, address, role]
 	);
 	res.status(201).json(result.rows[0]);
 }));
 
 app.put('/api/employees/:id', asyncHandler(async (req, res) => {
-	const { hotel_id, ssn_sin, full_name, address, role } = req.body;
+	const { chain_id, ssn_sin, full_name, address, role } = req.body;
+	
+	// Map chain_id to hotel_id (first hotel of each chain)
+	const hotelId = ((chain_id - 1) * 8) + 1;
+	
 	const result = await pool.query(
 		`UPDATE employee SET hotel_id = $1, ssn_sin = $2, full_name = $3, address = $4, role = $5 WHERE emp_id = $6 RETURNING *`,
-		[hotel_id, ssn_sin, full_name, address, role, req.params.id]
+		[hotelId, ssn_sin, full_name, address, role, req.params.id]
 	);
 	if (!result.rows.length) {
 		return res.status(404).json({ error: 'Employee not found' });
@@ -645,21 +669,25 @@ app.get('/api/rooms', asyncHandler(async (req, res) => {
 
 app.post('/api/rooms', asyncHandler(async (req, res) => {
 	const { hotel_id, room_number, price, capacity, view_type, extendable, status } = req.body;
+	// Convert string 'true'/'false' to actual boolean
+	const extendableValue = extendable === 'true' ? true : extendable === 'false' ? false : !!extendable;
 	const result = await pool.query(
 		`INSERT INTO room (hotel_id, room_number, price, capacity, view_type, extendable, status)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7)
 		 RETURNING *`,
-		[hotel_id, room_number, price, capacity, view_type || null, !!extendable, status || 'Available']
+		[hotel_id, room_number, price, capacity, view_type || null, extendableValue, status || 'Available']
 	);
 	res.status(201).json(result.rows[0]);
 }));
 
 app.put('/api/rooms/:id', asyncHandler(async (req, res) => {
 	const { hotel_id, room_number, price, capacity, view_type, extendable, status } = req.body;
+	// Convert string 'true'/'false' to actual boolean
+	const extendableValue = extendable === 'true' ? true : extendable === 'false' ? false : (extendable !== undefined ? !!extendable : undefined);
 	const result = await pool.query(
 		`UPDATE room SET hotel_id = $1, room_number = $2, price = $3, capacity = $4, view_type = $5, extendable = $6, status = $7
 		 WHERE room_id = $8 RETURNING *`,
-		[hotel_id, room_number, price, capacity, view_type || null, !!extendable, status, req.params.id]
+		[hotel_id, room_number, price, capacity, view_type || null, extendableValue, status, req.params.id]
 	);
 	if (!result.rows.length) {
 		return res.status(404).json({ error: 'Room not found' });
@@ -712,17 +740,6 @@ app.get('/api/customers/:id/bookings', asyncHandler(async (req, res) => {
 		[req.params.id]
 	);
 	res.json(result.rows);
-}));
-
-app.delete('/api/bookings/:id', asyncHandler(async (req, res) => {
-	const result = await pool.query(
-		`DELETE FROM booking WHERE book_id = $1 RETURNING book_id`,
-		[req.params.id]
-	);
-	if (!result.rows.length) {
-		return res.status(404).json({ error: 'Booking not found' });
-	}
-	res.json({ message: 'Booking cancelled successfully', book_id: result.rows[0].book_id });
 }));
 
 app.post('/api/bookings/:id/checkin', asyncHandler(async (req, res) => {

@@ -41,14 +41,21 @@
 				<div id="customerRegisterFields" class="hidden">
 					<label>Full Name <input name="full_name"></label>
 					<label>Address <input name="address"></label>
-					<label>ID Type <input name="id_type"></label>
+					<label>ID Type
+						<select name="id_type" required>
+							<option value="">-- Select --</option>
+							<option value="Passport">Passport</option>
+							<option value="Driver License">Driver License</option>
+							<option value="Health Card">Health Card</option>
+						</select>
+					</label>
 					<label>ID Number <input name="id_number"></label>
 				</div>
 
 				<div id="employeeRegisterFields" class="hidden">
-					<label>Hotel
-						<select id="employeeHotelSelect" name="hotel_id">
-							<option value="">Select hotel</option>
+					<label>Hotel Chain
+						<select id="employeeHotelSelect" name="chain_id">
+							<option value="">Select hotel chain</option>
 						</select>
 					</label>
 					<label>SSN/SIN <input name="ssn_sin"></label>
@@ -275,7 +282,16 @@
 				<label>ID (for update/delete) <input name="id" type="number"></label>
 				<label>Full Name <input name="full_name"></label>
 				<label>Address <input name="address"></label>
-				<label>ID Type <input name="id_type"></label>
+				<label>ID Type
+					<select name="id_type">
+						<option value="">-- Select --</option>
+						<option value="Passport">Passport</option>
+						<option value="Driver License">Driver License</option>
+						<option value="Health Card">Health Card</option>
+						<option value="SSN">SSN</option>
+						<option value="SIN">SIN</option>
+					</select>
+				</label>
 				<label>ID Number <input name="id_number"></label>
 				<div class="actions">
 					<button type="button" data-action="create">Insert</button>
@@ -288,11 +304,22 @@
 			<form id="employeeCrudForm">
 				<h3>Employee</h3>
 				<label>ID (for update/delete) <input name="id" type="number"></label>
-				<label>Hotel ID <input name="hotel_id" type="number"></label>
+				<label>Hotel Chain
+					<select name="chain_id" class="chain-select" required>
+						<option value="">-- Loading chains... --</option>
+					</select>
+				</label>
 				<label>SSN/SIN <input name="ssn_sin"></label>
 				<label>Full Name <input name="full_name"></label>
 				<label>Address <input name="address"></label>
-				<label>Role <input name="role"></label>
+				<label>Role
+					<select name="role">
+						<option value="">-- Select --</option>
+						<option value="Manager">Manager</option>
+						<option value="Receptionist">Receptionist</option>
+						<option value="Clerk">Clerk</option>
+					</select>
+				</label>
 				<div class="actions">
 					<button type="button" data-action="create">Insert</button>
 					<button type="button" data-action="update">Update</button>
@@ -304,9 +331,22 @@
 			<form id="hotelCrudForm">
 				<h3>Hotel</h3>
 				<label>ID (for update/delete) <input name="id" type="number"></label>
-				<label>Chain ID <input name="chain_id" type="number"></label>
+				<label>Chain
+					<select name="chain_id" class="chain-select" required>
+						<option value="">-- Loading chains... --</option>
+					</select>
+				</label>
 				<label>Name <input name="name"></label>
-				<label>Rating <input name="rating" type="number" min="1" max="5"></label>
+				<label>Rating
+					<select name="rating" required>
+						<option value="">-- Select --</option>
+						<option value="1">1 Star</option>
+						<option value="2">2 Stars</option>
+						<option value="3">3 Stars</option>
+						<option value="4">4 Stars</option>
+						<option value="5">5 Stars</option>
+					</select>
+				</label>
 				<label>Address <input name="address"></label>
 				<label>Email <input name="email"></label>
 				<label>Phone <input name="phone"></label>
@@ -322,13 +362,48 @@
 			<form id="roomCrudForm">
 				<h3>Room</h3>
 				<label>ID (for update/delete) <input name="id" type="number"></label>
-				<label>Hotel ID <input name="hotel_id" type="number"></label>
+				<label>Hotel
+					<select name="hotel_id" class="hotel-name-select" required>
+						<option value="">-- Loading hotels... --</option>
+					</select>
+				</label>
 				<label>Room Number <input name="room_number"></label>
-				<label>Price <input name="price" type="number" min="0" step="0.01"></label>
-				<label>Capacity <input name="capacity"></label>
-				<label>View Type <input name="view_type"></label>
-				<label>Extendable (true/false) <input name="extendable"></label>
-				<label>Status <input name="status" value="Available"></label>
+				<label>Price 
+					<input name="price" type="number" min="0" step="0.01" class="validate-positive-float">
+				</label>
+				<label>Capacity
+					<select name="capacity" required>
+						<option value="">-- Select --</option>
+						<option value="Single">Single</option>
+						<option value="Double">Double</option>
+						<option value="Suite">Suite</option>
+						<option value="Family">Family</option>
+						<option value="Deluxe">Deluxe</option>
+					</select>
+				</label>
+				<label>View Type
+					<select name="view_type">
+						<option value="">-- Select --</option>
+						<option value="City">City</option>
+						<option value="Mountain">Mountain</option>
+						<option value="Sea">Sea</option>
+					</select>
+				</label>
+				<label>Extendable
+					<select name="extendable">
+						<option value="">-- Select --</option>
+						<option value="true">Yes</option>
+						<option value="false">No</option>
+					</select>
+				</label>
+				<label>Status
+					<select name="status">
+						<option value="">-- Select --</option>
+						<option value="Available">Available</option>
+						<option value="Occupied">Occupied</option>
+						<option value="Maintenance">Maintenance</option>
+					</select>
+				</label>
 				<div class="actions">
 					<button type="button" data-action="create">Insert</button>
 					<button type="button" data-action="update">Update</button>

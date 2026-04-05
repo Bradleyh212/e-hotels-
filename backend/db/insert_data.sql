@@ -27,7 +27,49 @@ INSERT INTO Hotel (Hotel_ID, Chain_ID, Name, Rating, Address, Email, Phone, Mana
 SELECT
 	h,
 	((h - 1) / 8) + 1,
-	'Hotel ' || h,
+	CASE h
+		WHEN 1 THEN 'MapleStay Downtown Toronto'
+		WHEN 2 THEN 'MapleStay Airport Toronto'
+		WHEN 3 THEN 'MapleStay Niagara Falls'
+		WHEN 4 THEN 'MapleStay Ottawa Central'
+		WHEN 5 THEN 'MapleStay Kingston Harbor'
+		WHEN 6 THEN 'MapleStay Montreal Old Port'
+		WHEN 7 THEN 'MapleStay Quebec City Historic'
+		WHEN 8 THEN 'MapleStay Vancouver Stanley Park'
+		WHEN 9 THEN 'Northern Lights Montreal Downtown'
+		WHEN 10 THEN 'Northern Lights Quebec City'
+		WHEN 11 THEN 'Northern Lights Ottawa Parliament'
+		WHEN 12 THEN 'Northern Lights Toronto Financial'
+		WHEN 13 THEN 'Northern Lights Halifax Citadel'
+		WHEN 14 THEN 'Northern Lights Calgary Stampede'
+		WHEN 15 THEN 'Northern Lights Edmonton River Valley'
+		WHEN 16 THEN 'Northern Lights Vancouver Granville'
+		WHEN 17 THEN 'Pacific Crown Vancouver Downtown'
+		WHEN 18 THEN 'Pacific Crown Whistler Mountain'
+		WHEN 19 THEN 'Pacific Crown Victoria Inner Harbour'
+		WHEN 20 THEN 'Pacific Crown Tofino Oceanfront'
+		WHEN 21 THEN 'Pacific Crown Kelowna Lakeside'
+		WHEN 22 THEN 'Pacific Crown Calgary Downtown'
+		WHEN 23 THEN 'Pacific Crown Edmonton Capitol'
+		WHEN 24 THEN 'Pacific Crown Prince George'
+		WHEN 25 THEN 'Prairie View Calgary Heritage'
+		WHEN 26 THEN 'Prairie View Edmonton Gateway'
+		WHEN 27 THEN 'Prairie View Regina Wascana'
+		WHEN 28 THEN 'Prairie View Saskatoon River Landing'
+		WHEN 29 THEN 'Prairie View Winnipeg Forks'
+		WHEN 30 THEN 'Prairie View Thunder Bay'
+		WHEN 31 THEN 'Prairie View Brandon University'
+		WHEN 32 THEN 'Prairie View Medicine Hat'
+		WHEN 33 THEN 'Atlantic Horizon Halifax Waterfront'
+		WHEN 34 THEN 'Atlantic Horizon St. John''s Signal Hill'
+		WHEN 35 THEN 'Atlantic Horizon Charlottetown Founders'' Hall'
+		WHEN 36 THEN 'Atlantic Horizon Fredericton Beaverbrook'
+		WHEN 37 THEN 'Atlantic Horizon Moncton Tidal Bore'
+		WHEN 38 THEN 'Atlantic Horizon Sydney Fortress'
+		WHEN 39 THEN 'Atlantic Horizon Corner Brook'
+		WHEN 40 THEN 'Atlantic Horizon Stephenville'
+		ELSE 'Hotel ' || h
+	END,
 	((h - 1) % 5) + 1,
 	(100 + h) || ' Main St, ' ||
 	CASE (h % 8)
