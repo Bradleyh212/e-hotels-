@@ -714,6 +714,17 @@ app.get('/api/customers/:id/bookings', asyncHandler(async (req, res) => {
 	res.json(result.rows);
 }));
 
+app.delete('/api/bookings/:id', asyncHandler(async (req, res) => {
+	const result = await pool.query(
+		`DELETE FROM booking WHERE book_id = $1 RETURNING book_id`,
+		[req.params.id]
+	);
+	if (!result.rows.length) {
+		return res.status(404).json({ error: 'Booking not found' });
+	}
+	res.json({ message: 'Booking cancelled successfully', book_id: result.rows[0].book_id });
+}));
+
 app.post('/api/bookings/:id/checkin', asyncHandler(async (req, res) => {
 	const { emp_id, checkin_date, checkout_date } = req.body;
 	const client = await pool.connect();

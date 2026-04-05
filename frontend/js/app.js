@@ -314,6 +314,19 @@ async function loadCustomerProfile() {
 	}
 }
 
+async function cancelBooking(bookingId) {
+	if (!confirm('Are you sure you want to cancel this booking?')) {
+		return;
+	}
+	try {
+		await apiFetch(`/api/bookings/${bookingId}`, { method: 'DELETE' });
+		dashboardStatus.textContent = `✅ Booking #${bookingId} cancelled successfully.`;
+		loadCustomerBookings();
+	} catch (error) {
+		dashboardStatus.textContent = `❌ Failed to cancel booking: ${error.message}`;
+	}
+}
+
 async function loadCustomerBookings() {
 	if (!currentSession || currentSession.role !== 'customer') {
 		return;
@@ -331,7 +344,7 @@ async function loadCustomerBookings() {
 			const li = document.createElement('li');
 			const checkIn = new Date(booking.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 			const checkOut = new Date(booking.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-			li.textContent = `Booking #${booking.book_id}: Room ${booking.room_number} at ${booking.hotel_name} (${booking.address}) from ${checkIn} to ${checkOut}`;
+			li.innerHTML = `Booking #${booking.book_id}: Room ${booking.room_number} at ${booking.hotel_name} (${booking.address}) from ${checkIn} to ${checkOut} <button type="button" onclick="cancelBooking(${booking.book_id})">Cancel</button>`;
 			list.appendChild(li);
 		});
 		customerBookings.appendChild(list);
