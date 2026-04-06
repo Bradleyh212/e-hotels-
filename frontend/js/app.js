@@ -172,7 +172,7 @@ function configureRole(role) {
 		field.required = role === 'customer' && ['full_name', 'id_type', 'id_number'].includes(field.name);
 	});
 	employeeFields.forEach(field => {
-		field.required = role === 'employee' && ['hotel_id', 'ssn_sin', 'employee_full_name'].includes(field.name);
+		field.required = role === 'employee' && ['chain_id', 'ssn_sin', 'employee_full_name'].includes(field.name);
 	});
 }
 
@@ -820,7 +820,7 @@ async function register(event) {
 		payload.id_type = String(formData.get('id_type') || '').trim();
 		payload.id_number = String(formData.get('id_number') || '').trim();
 	} else {
-		payload.hotel_id = String(formData.get('hotel_id') || '').trim();
+		payload.chain_id = String(formData.get('chain_id') || '').trim();
 		payload.ssn_sin = String(formData.get('ssn_sin') || '').trim();
 		payload.full_name = String(formData.get('employee_full_name') || '').trim();
 		payload.address = String(formData.get('employee_address') || '').trim();
