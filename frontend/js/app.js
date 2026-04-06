@@ -22,6 +22,7 @@ const backToLoginBtn = document.getElementById('backToLoginBtn');
 const customerRegisterFields = document.getElementById('customerRegisterFields');
 const employeeRegisterFields = document.getElementById('employeeRegisterFields');
 const employeeHotelSelect = document.getElementById('employeeHotelSelect');
+const managementSection = document.getElementById('managementSection');
 
 const searchForm = document.getElementById('searchForm');
 const resetBtn = document.getElementById('resetBtn');
@@ -99,6 +100,7 @@ function applyRoleUI() {
 		closeCustomerDialogs();
 		employeeSection.classList.add('hidden');
 		adminSection.classList.add('hidden');
+		managementSection.classList.add('hidden');
 		return;
 	}
 
@@ -111,8 +113,10 @@ function applyRoleUI() {
 	employeeSection.classList.toggle('hidden', isCustomer);
 	adminSection.classList.toggle('hidden', isCustomer);
 	viewsSection.classList.toggle('hidden', isCustomer);
+	managementSection.classList.toggle('hidden', isCustomer);
 	myAccountBtn.classList.toggle('hidden', !isCustomer);
 	dashboardBtn.classList.toggle('hidden', !isCustomer);
+	
 
 	// Populate CRUD dropdowns for employee role
 	if (!isCustomer) {
